@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nutriscore-ml"
+version = "0.1.0"
+description = "Multi-class classification of food product Nutri-Scores using classical ML"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Jacopo Parretti", email = "jacopo.parretti@studenti.univr.it"},
+    {name = "Cesare Fraccaroli", email = "cesare.fraccaroli@studenti.univr.it"}
+]
+keywords = ["machine-learning", "classification", "nutri-score", "food-science", "scikit-learn"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[project.urls]
+Homepage = "https://github.com/djacoo/ml-nutriscore-prediction"
+Repository = "https://github.com/djacoo/ml-nutriscore-prediction"
+Issues = "https://github.com/djacoo/ml-nutriscore-prediction/issues"
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.eggs
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=src --cov-report=html --cov-report=term"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

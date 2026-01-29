@@ -1,11 +1,3 @@
-"""
-Base model class for all ML models in the nutriscore prediction project.
-
-This module provides an abstract base class that defines the standard interface
-for all machine learning models. All model implementations should inherit from
-this class to ensure consistency across the project.
-"""
-
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
@@ -25,29 +17,8 @@ from sklearn.metrics import (
 
 
 class BaseModel(ABC):
-    """
-    Abstract base class for all machine learning models.
-
-    This class defines the standard interface that all models must implement,
-    ensuring consistency in training, prediction, evaluation, and persistence.
-
-    Attributes:
-        model_name (str): Name of the model (e.g., 'LogisticRegression', 'RandomForest')
-        model: The underlying scikit-learn or other ML model instance
-        is_trained (bool): Flag indicating whether the model has been trained
-        hyperparameters (Dict): Dictionary of model hyperparameters
-        training_history (Dict): Dictionary storing training metrics and metadata
-        classes_ (np.ndarray): Array of unique class labels
-    """
 
     def __init__(self, model_name: str, **hyperparameters):
-        """
-        Initialize the base model.
-
-        Args:
-            model_name: Name identifier for the model
-            **hyperparameters: Model-specific hyperparameters
-        """
         self.model_name = model_name
         self.model = None
         self.is_trained = False
@@ -64,16 +35,6 @@ class BaseModel(ABC):
 
     @abstractmethod
     def _build_model(self) -> Any:
-        """
-        Build and return the underlying ML model instance.
-
-        This method must be implemented by each specific model class to
-        instantiate the appropriate scikit-learn or other ML model with
-        the specified hyperparameters.
-
-        Returns:
-            The instantiated model object
-        """
         pass
 
     def train(
@@ -84,36 +45,19 @@ class BaseModel(ABC):
         y_val: Optional[Union[np.ndarray, pd.Series]] = None,
         verbose: bool = True
     ) -> Dict[str, float]:
-        """
-        Train the model on the provided training data.
-
-        Args:
-            X_train: Training features
-            y_train: Training labels
-            X_val: Validation features (optional)
-            y_val: Validation labels (optional)
-            verbose: Whether to print training progress
-
-        Returns:
-            Dictionary containing training metrics
-        """
         if verbose:
             print(f"\nTraining {self.model_name}...")
             print(f"Training samples: {len(X_train)}")
             if X_val is not None:
                 print(f"Validation samples: {len(X_val)}")
 
-        # Build model if not already built
         if self.model is None:
             self.model = self._build_model()
 
-        # Record training start time
         start_time = datetime.now()
 
-        # Perform model-specific training
         train_metrics = self._fit(X_train, y_train, X_val, y_val, verbose)
 
-        # Record training completion
         end_time = datetime.now()
         training_duration = (end_time - start_time).total_seconds()
 
@@ -123,7 +67,6 @@ class BaseModel(ABC):
         self.training_history['training_time'] = training_duration
         self.training_history['train_metrics'] = train_metrics
 
-        # Evaluate on validation set if provided
         if X_val is not None and y_val is not None:
             val_metrics = self.evaluate(X_val, y_val, dataset_name='validation', verbose=verbose)
             self.training_history['val_metrics'] = val_metrics
@@ -132,7 +75,13 @@ class BaseModel(ABC):
             print(f"\nTraining completed in {training_duration:.2f} seconds")
             print(f"Training accuracy: {train_metrics.get('accuracy', 0):.4f}")
             if X_val is not None:
-                print(f"Validation accuracy: {self.training_history['val_metrics'].get('accuracy', 0):.4f}")
+                val_acc = self.training_history['val_metrics'].get('accuracy', 0)
+                print(f"Validation accuracy: {val_acc:.4f}")
+                gap = train_metrics.get('accuracy', 0) - val_acc
+                if gap > 0.05:
+                    print(f"Train-val gap: {gap:.4f} (possible overfitting)")
+                else:
+                    print(f"Train-val gap: {gap:.4f} (good generalization)")
 
         return train_metrics
 
@@ -145,56 +94,15 @@ class BaseModel(ABC):
         y_val: Optional[Union[np.ndarray, pd.Series]] = None,
         verbose: bool = True
     ) -> Dict[str, float]:
-        """
-        Model-specific training implementation.
-
-        This method must be implemented by each specific model class to
-        perform the actual training using the underlying ML algorithm.
-
-        Args:
-            X_train: Training features
-            y_train: Training labels
-            X_val: Validation features (optional)
-            y_val: Validation labels (optional)
-            verbose: Whether to print training progress
-
-        Returns:
-            Dictionary containing training metrics
-        """
         pass
 
     def predict(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
-        """
-        Make predictions on the provided data.
-
-        Args:
-            X: Features to predict on
-
-        Returns:
-            Array of predicted class labels
-
-        Raises:
-            ValueError: If model has not been trained yet
-        """
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
 
         return self.model.predict(X)
 
     def predict_proba(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
-        """
-        Predict class probabilities for the provided data.
-
-        Args:
-            X: Features to predict on
-
-        Returns:
-            Array of predicted class probabilities
-
-        Raises:
-            ValueError: If model has not been trained yet
-            AttributeError: If model doesn't support probability predictions
-        """
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
 
@@ -210,25 +118,11 @@ class BaseModel(ABC):
         dataset_name: str = 'test',
         verbose: bool = True
     ) -> Dict[str, float]:
-        """
-        Evaluate the model on the provided data.
-
-        Args:
-            X: Features to evaluate on
-            y_true: True labels
-            dataset_name: Name of the dataset (for logging purposes)
-            verbose: Whether to print evaluation results
-
-        Returns:
-            Dictionary containing evaluation metrics
-        """
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
 
-        # Make predictions
         y_pred = self.predict(X)
 
-        # Calculate metrics
         metrics = {
             'accuracy': accuracy_score(y_true, y_pred),
             'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
@@ -239,7 +133,6 @@ class BaseModel(ABC):
             'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
         }
 
-        # Store test metrics if this is test evaluation
         if dataset_name == 'test':
             self.training_history['test_metrics'] = metrics
 
@@ -263,17 +156,6 @@ class BaseModel(ABC):
         y_true: Union[np.ndarray, pd.Series],
         output_dict: bool = False
     ) -> Union[str, Dict]:
-        """
-        Generate a detailed classification report.
-
-        Args:
-            X: Features to evaluate on
-            y_true: True labels
-            output_dict: If True, return as dictionary instead of string
-
-        Returns:
-            Classification report as string or dictionary
-        """
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
 
@@ -285,16 +167,6 @@ class BaseModel(ABC):
         X: Union[np.ndarray, pd.DataFrame],
         y_true: Union[np.ndarray, pd.Series]
     ) -> np.ndarray:
-        """
-        Generate confusion matrix for predictions.
-
-        Args:
-            X: Features to evaluate on
-            y_true: True labels
-
-        Returns:
-            Confusion matrix as numpy array
-        """
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
 
@@ -302,20 +174,12 @@ class BaseModel(ABC):
         return confusion_matrix(y_true, y_pred)
 
     def save(self, filepath: Union[str, Path], save_metadata: bool = True) -> None:
-        """
-        Save the trained model to disk.
-
-        Args:
-            filepath: Path where the model should be saved
-            save_metadata: Whether to save training metadata alongside the model
-        """
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Cannot save untrained model.")
 
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
 
-        # Save the model
         model_data = {
             'model': self.model,
             'model_name': self.model_name,
@@ -328,7 +192,6 @@ class BaseModel(ABC):
         joblib.dump(model_data, filepath)
         print(f"Model saved to {filepath}")
 
-        # Save metadata as JSON
         if save_metadata:
             metadata_path = filepath.parent / f"{filepath.stem}_metadata.json"
             metadata = {
@@ -343,12 +206,6 @@ class BaseModel(ABC):
             print(f"Metadata saved to {metadata_path}")
 
     def load(self, filepath: Union[str, Path]) -> None:
-        """
-        Load a trained model from disk.
-
-        Args:
-            filepath: Path to the saved model file
-        """
         filepath = Path(filepath)
 
         if not filepath.exists():
@@ -366,45 +223,21 @@ class BaseModel(ABC):
         print(f"Model loaded from {filepath}")
 
     def get_params(self) -> Dict[str, Any]:
-        """
-        Get model hyperparameters.
-
-        Returns:
-            Dictionary of hyperparameters
-        """
         return self.hyperparameters.copy()
 
     def set_params(self, **params) -> 'BaseModel':
-        """
-        Set model hyperparameters.
-
-        Args:
-            **params: Hyperparameters to set
-
-        Returns:
-            Self for method chaining
-        """
         self.hyperparameters.update(params)
-        # Rebuild model with new parameters
         if self.model is not None:
             self.model = self._build_model()
-            self.is_trained = False  # Model needs to be retrained
+            self.is_trained = False
         return self
 
     def get_training_history(self) -> Dict:
-        """
-        Get the training history and metrics.
-
-        Returns:
-            Dictionary containing training history
-        """
         return self.training_history.copy()
 
     def __repr__(self) -> str:
-        """String representation of the model."""
         trained_status = "trained" if self.is_trained else "not trained"
         return f"{self.model_name}({trained_status}, params={self.hyperparameters})"
 
     def __str__(self) -> str:
-        """Human-readable string representation."""
         return self.__repr__()

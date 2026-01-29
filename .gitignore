@@ -73,6 +73,7 @@ models/trained/*.h5
 models/trained/*.pt
 models/trained/*.pth
 models/trained/*.onnx
+models.txt
 
 # results
 results/figures/**/*.png
@@ -95,6 +96,9 @@ results/reports/*.pdf
 # OS
 Thumbs.db
 .DS_Store
+
+# Windows scripts
+*.bat
 
 # Logs
 *.log

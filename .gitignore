@@ -61,18 +61,6 @@ data/splits/*.csv
 data/splits/*.json
 data/splits/*.npy
 
-# models
-models/preprocessing/*.pkl
-models/preprocessing/*.joblib
-models/preprocessing/*.h5
-models/preprocessing/*.pt
-models/preprocessing/*.pth
-models/trained/*.pkl
-models/trained/*.joblib
-models/trained/*.h5
-models/trained/*.pt
-models/trained/*.pth
-models/trained/*.onnx
 
 # results
 results/figures/**/*.png
@@ -95,6 +83,9 @@ results/reports/*.pdf
 # OS
 Thumbs.db
 .DS_Store
+
+# Windows scripts
+*.bat
 
 # Logs
 *.log
@@ -121,3 +112,14 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+# models - trained model files (heavy, don't push)
+models/trained/**/*.pkl
+models/trained/**/*.joblib
+models/trained/**/*.h5
+models/trained/**/*.pt
+models/trained/**/*.pth
+models/trained/**/*.onnx
+!models/trained/**/*_metadata.json
+
+# model tuning results
+models/tuning/

@@ -24,7 +24,7 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
         self.explained_variance_ratio_: Optional[np.ndarray] = None
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> 'FeatureReducer':
-        """Fit PCA on numerical features."""
+        
         numerical_cols = X.select_dtypes(include=[np.number]).columns.tolist()
         if len(numerical_cols) == 0:
             raise ValueError("No numerical columns found for PCA")
@@ -60,7 +60,7 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Transform to principal component space."""
+        
         if self.pca_ is None:
             raise ValueError("PCA has not been fitted. Call fit() first.")
 
@@ -85,13 +85,13 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
         return X_pca
 
     def get_explained_variance_ratio(self) -> np.ndarray:
-        """Return explained variance ratio per component."""
+        
         if self.pca_ is None:
             raise ValueError("PCA has not been fitted. Call fit() first.")
         return self.explained_variance_ratio_
 
     def get_cumulative_variance(self) -> np.ndarray:
-        """Return cumulative explained variance ratio."""
+        
         if self.pca_ is None:
             raise ValueError("PCA has not been fitted. Call fit() first.")
         return np.cumsum(self.explained_variance_ratio_)
@@ -99,14 +99,14 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
     def fit_transform(
         self, X: pd.DataFrame, y: Optional[pd.Series] = None
     ) -> pd.DataFrame:
-        """Fit and transform."""
+        
         return self.fit(X, y).transform(X)
 
     def save(self, path: str) -> None:
-        """Save to file."""
+        
         joblib.dump(self, path)
 
     @classmethod
     def load(cls, path: str) -> 'FeatureReducer':
-        """Load from file."""
+        
         return joblib.load(path)

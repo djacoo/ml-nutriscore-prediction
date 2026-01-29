@@ -1,4 +1,3 @@
-"""Complete preprocessing pipeline combining all transformers."""
 import pandas as pd
 import numpy as np
 from typing import Optional, List
@@ -23,7 +22,6 @@ def create_preprocessing_pipeline(
     remove_statistical_outliers: bool = False,
     include_pca: bool = True
 ) -> Pipeline:
-    """Create preprocessing pipeline with configurable steps."""
     steps = [
         ('missing_values', MissingValueTransformer(
             threshold_drop_feature=missing_threshold,
@@ -33,7 +31,7 @@ def create_preprocessing_pipeline(
             target_col=target_col,
             remove_statistical_outliers=remove_statistical_outliers
         )),
-        ('encoding', FeatureEncoder(top_n_countries=top_n_countries)),
+        ('encoding', FeatureEncoder(top_n_countries=top_n_countries, target_col=target_col)),
     ]
 
     if include_feature_engineering:
@@ -49,8 +47,6 @@ def create_preprocessing_pipeline(
 
 
 class PreprocessingPipeline:
-    """High-level preprocessing pipeline wrapper with metadata handling."""
-
     def __init__(
         self,
         missing_threshold: float = 0.95,
@@ -84,29 +80,25 @@ class PreprocessingPipeline:
         )
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> 'PreprocessingPipeline':
-        """Fit pipeline on training data only to prevent data leakage."""
         if self.split_group_col in X.columns:
             train_mask = X[self.split_group_col] == 'train'
             X_train = X[train_mask]
-
-            if y is not None:
-                y_train = y[train_mask]
-            elif self.target_col in X_train.columns:
-                y_train = X_train[self.target_col]
-            else:
-                y_train = None
-
             print(f"Fitting on train split only: {len(X_train):,} samples")
-            self.pipeline.fit(X_train, y_train)
+            self.pipeline.fit(X_train, y)
         else:
             self.pipeline.fit(X, y)
 
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Transform data using fitted pipeline."""
         return self.pipeline.transform(X)
 
     def fit_transform(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> pd.DataFrame:
-        """Fit and transform."""
-        return self.fit(X, y).transform(X)
+        if self.split_group_col in X.columns:
+            train_mask = X[self.split_group_col] == 'train'
+            X_train = X[train_mask]
+            print(f"Fitting on train split only: {len(X_train):,} samples")
+            self.pipeline.fit(X_train, y)
+            return self.pipeline.transform(X)
+        else:
+            return self.pipeline.fit_transform(X, y)

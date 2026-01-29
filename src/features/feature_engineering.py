@@ -1,14 +1,12 @@
-"""Feature engineering for nutritional data."""
 import joblib
 import pandas as pd
 import numpy as np
 from typing import Optional
 from sklearn.base import BaseEstimator, TransformerMixin
+from tqdm import tqdm
 
 
 class FeatureEngineer(BaseEstimator, TransformerMixin):
-    """Creates derived features from nutritional values."""
-
     def __init__(
         self,
         add_ratios: bool = True,
@@ -22,36 +20,46 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         self.add_boolean_flags = add_boolean_flags
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> 'FeatureEngineer':
-        """No fitting needed, just returns self."""
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Add derived features to the dataframe."""
         X_engineered = X.copy()
 
-        if self.add_ratios:
-            X_engineered = self._add_ratios(X_engineered)
+        steps = [
+            (self.add_ratios, self._add_ratios, "nutrient ratios"),
+            (self.add_energy_density, self._add_energy_density, "energy density"),
+            (self.add_caloric_contributions, self._add_caloric_contributions, "caloric contributions"),
+            (self.add_boolean_flags, self._add_boolean_flags, "threshold flags")
+        ]
 
-        if self.add_energy_density:
-            X_engineered = self._add_energy_density(X_engineered)
+        active_steps = [(func, name) for enabled, func, name in steps if enabled]
 
-        if self.add_caloric_contributions:
-            X_engineered = self._add_caloric_contributions(X_engineered)
+        with tqdm(total=len(active_steps), desc="           Step 2.4: Engineering features",
+                  unit="operation", leave=False, mininterval=0.05, miniters=1) as pbar:
+            for func, name in active_steps:
+                X_engineered = func(X_engineered)
+                pbar.update(1)
 
-        if self.add_boolean_flags:
-            X_engineered = self._add_boolean_flags(X_engineered)
-
-        # Fill NaN from division by zero
         derived_cols = [col for col in X_engineered.columns if col not in X.columns]
         if derived_cols:
             for col in derived_cols:
                 if X_engineered[col].isna().any():
                     X_engineered[col] = X_engineered[col].fillna(0.0)
 
+        if derived_cols:
+            print(f"                     Operation: Feature engineering")
+            print(f"                              - Created {len(derived_cols)} new features")
+            
+            example_features = ", ".join([f"'{col}'" for col in derived_cols[:4]])
+            if len(derived_cols) > 4:
+                example_features += f" (+{len(derived_cols)-4} more)"
+            print(f"                              - Examples: {example_features}")
+            feature_types = [name for _, name in active_steps]
+            print(f"                              - Categories: {', '.join(feature_types)}")
+
         return X_engineered
 
     def _add_ratios(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Calculate ratios between macro nutrients."""
         if 'fat_100g' in X.columns and 'proteins_100g' in X.columns:
             X['fat_to_protein_ratio'] = np.divide(
                 X['fat_100g'], X['proteins_100g'],
@@ -76,13 +84,11 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         return X
 
     def _add_energy_density(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Calculate energy per gram."""
         if 'energy-kcal_100g' in X.columns:
             X['energy_density'] = X['energy-kcal_100g'] / 100.0
         return X
 
     def _add_caloric_contributions(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Calculate calories from each macro (fat=9kcal/g, carbs/protein=4kcal/g)."""
         if 'fat_100g' in X.columns:
             X['calories_from_fat'] = X['fat_100g'] * 9.0
 
@@ -95,7 +101,6 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         return X
 
     def _add_boolean_flags(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Flag products with high fat/sugar/salt based on WHO thresholds."""
         if 'fat_100g' in X.columns:
             X['high_fat'] = (X['fat_100g'] > 20.0).astype(int)
 
@@ -110,14 +115,11 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
     def fit_transform(
         self, X: pd.DataFrame, y: Optional[pd.Series] = None
     ) -> pd.DataFrame:
-        """Fit and transform in one go."""
         return self.fit(X, y).transform(X)
 
     def save(self, path: str) -> None:
-        """Save to file."""
         joblib.dump(self, path)
 
     @classmethod
     def load(cls, path: str) -> 'FeatureEngineer':
-        """Load from file."""
         return joblib.load(path)

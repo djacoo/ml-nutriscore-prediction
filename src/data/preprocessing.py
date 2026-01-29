@@ -1,4 +1,3 @@
-"""Data preprocessing for missing values and country name cleaning."""
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -15,8 +14,6 @@ except ImportError:
 
 
 class MissingValueHandler:
-    """Handles missing values through imputation and feature removal."""
-
     def __init__(self, threshold_drop_feature: float = 0.95):
         self.threshold_drop_feature = threshold_drop_feature
         self.imputation_stats = {}
@@ -24,7 +21,6 @@ class MissingValueHandler:
         self.missing_report = {}
 
     def analyze_missing_values(self, df: pd.DataFrame) -> Dict:
-        """Analyze missing value patterns."""
         missing_info = {}
 
         for col in df.columns:
@@ -46,20 +42,12 @@ class MissingValueHandler:
 
     def handle_missing_values(self, df: pd.DataFrame,
                             target_col: str = 'nutriscore_grade') -> pd.DataFrame:
-        """Handle missing values based on strategy."""
+        from tqdm import tqdm
+
         df_processed = df.copy()
         initial_rows, initial_cols = len(df_processed), len(df_processed.columns)
 
-        print(f"\nMissing Value Handling: {initial_rows:,} rows × {initial_cols} columns")
-
         self.missing_report = self.analyze_missing_values(df_processed)
-
-        top_missing = [(col, info) for col, info in list(self.missing_report.items())[:5]
-                       if info['missing_percentage'] > 0]
-        if top_missing:
-            print("Top missing features:")
-            for col, info in top_missing:
-                print(f"  {col}: {info['missing_percentage']:.1f}% ({info['missing_count']:,})")
 
         threshold_pct = self.threshold_drop_feature * 100
         high_missing_cols = [col for col, info in self.missing_report.items()
@@ -68,12 +56,10 @@ class MissingValueHandler:
         if high_missing_cols:
             df_processed = df_processed.drop(columns=high_missing_cols)
             self.dropped_features.extend(high_missing_cols)
-            print(f"Dropped {len(high_missing_cols)} features with >{threshold_pct:.0f}% missing")
 
         target_missing = df_processed[target_col].isnull().sum()
         if target_missing > 0:
             df_processed = df_processed[df_processed[target_col].notna()]
-            print(f"Dropped {target_missing:,} rows with missing target")
 
         numerical_cols = df_processed.select_dtypes(include=[np.number]).columns.tolist()
         imputed_numerical = []
@@ -97,12 +83,6 @@ class MissingValueHandler:
                 }
                 imputed_numerical.append((col, method, value, missing_count))
 
-        if imputed_numerical:
-            print(f"Imputed {len(imputed_numerical)} numerical features:")
-            for col, method, value, count in imputed_numerical[:5]:
-                val_str = f"{value:.2f}" if isinstance(value, (int, float)) else str(value)
-                print(f"  {col}: {method} ({val_str}) - {count:,} values")
-
         categorical_cols = [col for col in df_processed.select_dtypes(include=['object']).columns
                            if col != target_col]
         imputed_categorical = []
@@ -119,27 +99,35 @@ class MissingValueHandler:
                 }
                 imputed_categorical.append((col, missing_count))
 
-        if imputed_categorical:
-            print(f"Imputed {len(imputed_categorical)} categorical features with 'unknown'")
-
         final_rows, final_cols = len(df_processed), len(df_processed.columns)
-        remaining_missing = df_processed.isnull().sum().sum()
+        cols_dropped = initial_cols - final_cols
+        rows_dropped = initial_rows - final_rows
 
-        print(f"\nResult: {final_rows:,} rows × {final_cols} columns")
-        if initial_rows != final_rows:
-            print(f"  Rows removed: {initial_rows - final_rows:,} ({(initial_rows - final_rows)/initial_rows*100:.1f}%)")
-        if initial_cols != final_cols:
-            print(f"  Columns removed: {initial_cols - final_cols}")
-
-        if remaining_missing > 0:
-            print(f"  Warning: {remaining_missing:,} missing values remaining")
-        else:
-            print("  All missing values handled")
+        print(f"                     Operation: Missing value imputation and feature filtering")
+        if cols_dropped > 0:
+            dropped_names = ", ".join([f"'{col}'" for col in high_missing_cols[:2]])
+            if len(high_missing_cols) > 2:
+                dropped_names += f" (+{len(high_missing_cols)-2} more)"
+            print(f"                              - Dropped: {dropped_names}")
+        if rows_dropped > 0:
+            print(f"                              - Removed {rows_dropped:,} rows with missing '{target_col}'")
+        if len(imputed_numerical) > 0:
+            num_examples = []
+            for col, method, value, count in imputed_numerical[:2]:
+                val_str = f"{value:.1f}" if method == 'median' else str(value)
+                num_examples.append(f"'{col}'={val_str}")
+            if len(imputed_numerical) > 2:
+                num_examples.append(f"(+{len(imputed_numerical)-2} more)")
+            print(f"                              - Imputed numerical: {', '.join(num_examples)}")
+        if len(imputed_categorical) > 0:
+            cat_names = ", ".join([f"'{col}'" for col, _ in imputed_categorical[:2]])
+            if len(imputed_categorical) > 2:
+                cat_names += f" (+{len(imputed_categorical)-2} more)"
+            print(f"                              - Imputed categorical: {cat_names} -> 'unknown'")
 
         return df_processed
 
     def save_imputation_report(self, output_path: Path) -> None:
-        """Save report to JSON."""
         report = {
             'strategy': {
                 'threshold_drop_feature': self.threshold_drop_feature,
@@ -158,7 +146,6 @@ class MissingValueHandler:
 
 
 def normalize_single_country(raw_name: str) -> str:
-    """Convert raw country name to standard ISO name."""
     name = str(raw_name).lower().strip()
     name = name.replace("en:", "").replace("-", " ")
 
@@ -188,7 +175,6 @@ def normalize_single_country(raw_name: str) -> str:
 
 
 def clean_countries_column(entry) -> str:
-    """Clean and normalize country entries."""
     if pd.isna(entry) or entry == "unknown":
         return "unknown"
 
@@ -208,7 +194,6 @@ def clean_countries_column(entry) -> str:
 def preprocess_dataset(input_path: Path,
                       output_path: Path,
                       report_path: Path = None) -> Tuple[pd.DataFrame, MissingValueHandler]:
-    """Main preprocessing function."""
     print(f"\nLoading data: {input_path}")
     df = pd.read_csv(input_path)
     print(f"Loaded: {len(df):,} rows × {len(df.columns)} columns")

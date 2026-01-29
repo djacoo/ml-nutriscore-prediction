@@ -1,23 +1,13 @@
-"""
-Country name mappings for data cleaning.
-
-Maps various country name formats to standard English names.
-"""
-
-# Country name overrides for standardization
 COUNTRY_OVERRIDES = {
-    # Handle official names that get split incorrectly
     'plurinational state of': 'Bolivia',
     'bolivarian republic of': 'Venezuela',
     'republic of korea': 'South Korea',
 
-    # North America
     'usa': 'United States',
     'us': 'United States',
     'en:us': 'United States',
     'états-unis': 'United States',
 
-    # European countries
     'uk': 'United Kingdom',
     'en:gb': 'United Kingdom',
     'royaume-uni': 'United Kingdom',
@@ -60,7 +50,6 @@ COUNTRY_OVERRIDES = {
     'no': 'Norway',
     'norge': 'Norway',
 
-    # Other regions
     'ru': 'Russian Federation',
     'russia': 'Russian Federation',
 

@@ -1,4 +1,3 @@
-"""Data splitting and loading utilities."""
 import pandas as pd
 import numpy as np
 import json
@@ -16,7 +15,6 @@ def split_data(
     random_state: int = 42,
     stratify: bool = True
 ) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
-    """Split dataset into train, validation, and test sets with stratification."""
     ratio_sum = train_ratio + val_ratio + test_ratio
     if not np.isclose(ratio_sum, 1.0, atol=1e-6):
         raise ValueError(f"Ratios must sum to 1.0, got {ratio_sum}")
@@ -59,7 +57,6 @@ def add_split_group_column(
     val_indices: np.ndarray,
     test_indices: np.ndarray
 ) -> pd.DataFrame:
-    """Add split_group column indicating train/val/test assignment."""
     df_with_split = df.copy()
     df_with_split['split_group'] = 'test'
 
@@ -75,7 +72,6 @@ def verify_stratification(
     y_val: pd.Series,
     y_test: pd.Series
 ) -> Dict:
-    """Verify class distribution balance across splits."""
     train_dist = y_train.value_counts(normalize=True).sort_index()
     val_dist = y_val.value_counts(normalize=True).sort_index()
     test_dist = y_test.value_counts(normalize=True).sort_index()
@@ -119,7 +115,6 @@ def save_splits(
     y_test: pd.Series,
     output_dir: Path
 ) -> Dict[str, Path]:
-    """Save splits to disk as CSV files."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
     X_train.to_csv(output_dir / 'X_train.csv', index=False)
@@ -142,21 +137,18 @@ def save_splits(
 
 
 def load_train_data(data_dir: Path) -> Tuple[pd.DataFrame, pd.Series]:
-    """Load training data from CSV files."""
     X_train = pd.read_csv(data_dir / 'X_train.csv')
     y_train = pd.read_csv(data_dir / 'y_train.csv').squeeze()
     return X_train, y_train
 
 
 def load_val_data(data_dir: Path) -> Tuple[pd.DataFrame, pd.Series]:
-    """Load validation data from CSV files."""
     X_val = pd.read_csv(data_dir / 'X_val.csv')
     y_val = pd.read_csv(data_dir / 'y_val.csv').squeeze()
     return X_val, y_val
 
 
 def load_test_data(data_dir: Path) -> Tuple[pd.DataFrame, pd.Series]:
-    """Load test data from CSV files."""
     X_test = pd.read_csv(data_dir / 'X_test.csv')
     y_test = pd.read_csv(data_dir / 'y_test.csv').squeeze()
     return X_test, y_test
@@ -167,7 +159,6 @@ def save_split_metadata(
     config: Dict,
     output_path: Path
 ) -> None:
-    """Save split metadata to JSON."""
     metadata = {
         'configuration': config,
         'statistics': {

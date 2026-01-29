@@ -1,4 +1,4 @@
-# Python
+# py
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,14 +23,15 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environment
+# venv
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
+ml-predictor/
 
-# Jupyter Notebook
+# ipynb
 .ipynb_checkpoints/
 *.ipynb_checkpoints/
 
@@ -38,8 +39,9 @@ venv.bak/
 profile_default/
 ipython_config.py
 
-# Data files (too large for git)
+# data
 data/raw/*.csv
+data/raw/*.csv.gz
 data/raw/*.json
 data/raw/*.jsonl
 data/raw/*.parquet
@@ -55,13 +57,11 @@ data/processed/*.h5
 data/processed/*.hdf5
 data/processed/*.pkl
 data/processed/*.pickle
-data/processed/splits/*.csv
-data/processed/splits/*.json
-data/processed/splits/*.npy
-data/external/*.csv
-data/external/*.json
+data/splits/*.csv
+data/splits/*.json
+data/splits/*.npy
 
-# Models (too large for git)
+# models
 models/preprocessing/*.pkl
 models/preprocessing/*.joblib
 models/preprocessing/*.h5
@@ -74,7 +74,7 @@ models/trained/*.pt
 models/trained/*.pth
 models/trained/*.onnx
 
-# Results
+# results
 results/figures/**/*.png
 results/figures/**/*.jpg
 results/figures/**/*.pdf

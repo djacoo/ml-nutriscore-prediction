@@ -1,5 +1,3 @@
-"""Download and filter Open Food Facts dataset for Nutri-Score prediction."""
-
 import requests
 import pandas as pd
 from pathlib import Path
@@ -46,32 +44,31 @@ RELEVANT_COLUMNS = [
 
 
 def download_dataset(url, output_path):
-    """Download dataset with progress bar."""
     try:
-        print(f"Downloading from {url}...")
+        print(f"      Downloading...")
         response = requests.get(url, stream=True)
         response.raise_for_status()
 
         total_size = int(response.headers.get('content-length', 0))
 
         with open(output_path, 'wb') as f:
-            with tqdm(total=total_size, unit='iB', unit_scale=True) as pbar:
+            with tqdm(total=total_size, unit='iB', unit_scale=True,
+                     bar_format='      {percentage:3.0f}% |{bar}| {n_fmt}/{total_fmt} [{elapsed}]') as pbar:
                 for chunk in response.iter_content(chunk_size=8192):
                     size = f.write(chunk)
                     pbar.update(size)
 
-        print(f"Downloaded to {output_path}")
+        print(f"      Download complete")
         return True
 
     except Exception as e:
-        print(f"Download failed: {e}")
+        print(f"      Error: {e}")
         return False
 
 
 def load_and_filter_data(input_path, output_path, sample_size=None, chunksize=10000):
-    """Load raw data, filter for valid Nutri-Score products, and save."""
     try:
-        print(f"\nProcessing in chunks of {chunksize:,} rows...")
+        print(f"      Processing data...")
 
         total_rows = 0
         filtered_rows = 0
@@ -90,7 +87,8 @@ def load_and_filter_data(input_path, output_path, sample_size=None, chunksize=10
             chunksize=chunksize
         )
 
-        for df_chunk in tqdm(chunk_iterator, desc="Processing chunks"):
+        for df_chunk in tqdm(chunk_iterator, desc="      ",
+                            bar_format='{desc}{percentage:3.0f}% |{bar}| {n} chunks [{elapsed}]'):
             total_rows += len(df_chunk)
 
             if existing_columns is None:
@@ -118,39 +116,24 @@ def load_and_filter_data(input_path, output_path, sample_size=None, chunksize=10
 
             all_filtered_chunks.append(df_filtered)
 
-        print(f"Processed {total_rows:,} total rows")
-        print(f"Found {filtered_rows:,} with Nutri-Score labels")
-        print(f"Kept {valid_rows:,} with valid grades (a-e)")
-
-        if missing_columns:
-            print(f"\nMissing columns:")
-            for col in missing_columns:
-                print(f"  - {col}")
-
-        print(f"Kept {len(existing_columns)} columns")
+        print(f"      Filtered {valid_rows:,} products from {total_rows:,} total rows")
 
         df_filtered = pd.concat(all_filtered_chunks, ignore_index=True)
 
         if sample_size and len(df_filtered) > sample_size:
             df_filtered = df_filtered.sample(n=sample_size, random_state=42)
-            print(f"Sampled {sample_size:,} products")
+            print(f"      Sampled {sample_size:,} products")
             grade_counts = df_filtered['nutriscore_grade'].str.upper().value_counts().sort_index()
 
-        print(f"\nSaving to {output_path}...")
         df_filtered.to_csv(output_path, index=False)
-
-        print("\nNutri-Score distribution:")
-        grade_counts_sorted = dict(sorted(grade_counts.items()))
-        for grade, count in grade_counts_sorted.items():
-            percentage = (count / valid_rows) * 100 if valid_rows > 0 else 0
-            print(f"  Grade {grade}: {count:,} ({percentage:.1f}%)")
+        print(f"      Saved to {output_path}")
 
         metadata = {
             'total_products': total_rows,
             'filtered_products': valid_rows,
             'columns': len(existing_columns),
             'missing_columns': missing_columns,
-            'grade_distribution': grade_counts_sorted,
+            'grade_distribution': dict(sorted(grade_counts.items())),
             'data_source': OPENFOODFACTS_URL,
             'download_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
         }
@@ -158,40 +141,30 @@ def load_and_filter_data(input_path, output_path, sample_size=None, chunksize=10
         metadata_path = PROCESSED_DATA_DIR / 'metadata.json'
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
-        print(f"Metadata saved to {metadata_path}")
 
         return df_filtered
 
     except Exception as e:
-        print(f"Processing failed: {e}")
+        print(f"      Error: {e}")
         raise
 
 
 def main():
-    print("=" * 70)
-    print("Open Food Facts Data Download")
-    print("=" * 70)
-
     if FILTERED_FILE.exists():
-        print(f"\nFiltered dataset already exists at {FILTERED_FILE}")
-        print("Delete it first if you want to re-download.")
+        print(f"      Dataset already exists at {FILTERED_FILE}")
+        print(f"      Delete it first if you want to re-download.")
         return
 
     if not RAW_FILE.exists():
         success = download_dataset(OPENFOODFACTS_URL, RAW_FILE)
         if not success:
-            print("\nDownload failed. Exiting.")
+            print("      Download failed")
             return
     else:
-        print(f"Raw file already exists at {RAW_FILE}")
+        print(f"      Using existing raw file at {RAW_FILE}")
 
     df = load_and_filter_data(RAW_FILE, FILTERED_FILE, sample_size=100000)
-
-    print("\n" + "=" * 70)
-    print("Download Complete")
-    print("=" * 70)
-    print(f"\nFiltered dataset: {FILTERED_FILE}")
-    print(f"Shape: {df.shape}")
+    print(f"      Dataset ready: {df.shape[0]:,} products, {df.shape[1]} features")
 
 
 if __name__ == "__main__":

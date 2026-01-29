@@ -1,239 +1,196 @@
 # Preprocessing Pipeline
 
-Complete preprocessing pipeline for Nutri-Score prediction, from raw data to model-ready features.
+This document describes the complete data preprocessing workflow for transforming raw Open-Food-Facts data into machine learning-ready features for Nutri-Score prediction.
 
-## Quick Start
+## How to Run
 
-To execute the full pipeline from scratch:
+### Automated Execution
+
+Execute the following command from the repository root:
 
 ```bash
-# 1. Download raw data
+./run-preprocessing.sh
+```
+
+This script orchestrates the entire preprocessing workflow:
+
+1. Creates or activates the `ml-predictor` virtual environment
+2. Installs all dependencies from [pyproject.toml](../pyproject.toml)
+3. Downloads and filters 100,000 product samples from Open Food Facts
+4. Applies all data preprocessing transformations
+5. Generates stratified train/validation/test splits
+
+The script preserves existing virtual environments, allowing repeated execution without reinstalling dependencies. All processed data is written to [data/splits/](../data/splits/).
+
+### Manual Execution
+
+For step-by-step execution:
+
+```bash
+# create and activate venv
+python3 -m venv ml-predictor
+source ml-predictor/bin/activate
+
+# install dependencies
+pip install uv  # fast package installer
+uv pip install -e .
+
+# download raw data
 python scripts/download_data.py
 
-# 2. Run preprocessing (create a script or notebook with the code from "Execution Steps" below)
+# run preprocessing
 python scripts/run_preprocessing.py
-
-# 3. Data is now ready in data/splits/ for model training
 ```
 
-The pipeline takes ~10-15 minutes on the 100k sample. You'll get train/val/test splits with ~70k/15k/15k samples.
+## Pipeline Architecture
 
-## Pipeline Structure
+The preprocessing pipeline consists of seven sequential stages, each implemented as a scikit-learn transformer. All transformers are fitted exclusively on training data to prevent information leakage.
 
-Seven stages transform raw Open Food Facts data:
+### Stage 1: Data pull from API
 
-1. Data Download
-2. Missing Value Handling
-3. Outlier Removal
-4. Categorical Encoding
-5. Feature Engineering
-6. Scaling
-7. Dimensionality Reduction (PCA)
+**Implementation**: [scripts/download_data.py](../scripts/download_data.py)
 
-Built with sklearn's `Pipeline` API. Each transformer has `fit()` and `transform()` methods:
+The pipeline downloads the complete Open Food Facts dataset (approximately 7GB compressed) and filters for products containing Nutri-Score labels (grades a-e). A random sample of 100,000 products is extracted and saved to `data/processed/openfoodfacts_filtered.csv`.
 
-```python
-Pipeline([
-    ('missing_values', MissingValueTransformer),
-    ('outlier_removal', OutlierRemovalTransformer),
-    ('encoding', FeatureEncoder),
-    ('feature_engineering', FeatureEngineer),
-    ('scaling', FeatureScaler),
-    ('pca', FeatureReducer)
-])
-```
+### Stage 2: Missing Value Handling
 
-## Execution Steps
+**Implementation**: `MissingValueTransformer` ([src/features/outlier_removal.py:9](../src/features/outlier_removal.py#L9))
 
-### 1. Download Data
+Missing value treatment follows a two-phase strategy:
 
-```bash
-python scripts/download_data.py
-```
+**Feature-level filtering**: Columns with more than 95% missing values are dropped, as they provide insufficient information for prediction.
 
-Downloads ~7GB compressed dataset from Open Food Facts, filters for valid Nutri-Score labels (a-e), samples 100k products, and saves to `data/processed/openfoodfacts_filtered.csv`.
+**Imputation strategy** (applied to retained features):
+- **Numerical features**: Imputed using the median value from the training set, which provides robustness against outliers
+- **Additives count**: Missing values default to 0, assuming unreported additives are absent
+- **Categorical features**: Missing entries are labeled as 'unknown'
+- **Target variable**: Samples without Nutri-Score labels are removed entirely
 
-### 2. Preprocess
+### Stage 3: Outlier Detection and Removal
 
-```python
-import pandas as pd
-from pathlib import Path
-from features.preprocessing_pipeline import PreprocessingPipeline
-from data.data_loader import split_data, save_splits, verify_stratification, save_split_metadata
+**Implementation**: `OutlierRemovalTransformer` ([src/features/outlier_removal.py:43](../src/features/outlier_removal.py#L43))
 
-data_path = Path("data/processed/openfoodfacts_filtered.csv")
-df = pd.read_csv(data_path)
+Outlier detection applies domain-based validation rules derived from nutritional constraints:
 
-pipeline = PreprocessingPipeline(
-    missing_threshold=0.95,
-    top_n_countries=15,
-    scaling_method='auto',
-    scaling_skew_threshold=1.0,
-    pca_variance_threshold=0.95,
-    target_col='nutriscore_grade',
-    include_feature_engineering=True,
-    remove_statistical_outliers=False,
-    include_pca=True
-)
+- **Macronutrients** (fat, carbohydrates, sugars, fiber, proteins): Valid range 0-100 g/100g
+- **Saturated fat**: Valid range 0-100 g/100g
+- **Salt**: Valid range 0-50 g/100g
 
-df_processed = pipeline.fit_transform(df)
+Values outside these physiologically plausible ranges indicate data entry errors or measurement artifacts. This approach removes approximately 1,500 samples (1.5% of the dataset).
 
-output_path = Path("data/processed/openfoodfacts_preprocessed.csv")
-df_processed.to_csv(output_path, index=False)
-```
+The pipeline includes an optional statistical outlier removal method using the interquartile range (IQR), but this is disabled by default (`remove_statistical_outliers=False`). Statistical methods are too aggressive for nutritional data, incorrectly flagging legitimate products such as high-fiber cereals and protein concentrates as outliers.
 
-### 3. Split Data
+### Stage 4: Categorical feature encoding
 
-```python
-X_train, y_train, X_val, y_val, X_test, y_test = split_data(
-    df_processed,
-    target_col='nutriscore_grade',
-    train_ratio=0.7,
-    val_ratio=0.15,
-    test_ratio=0.15,
-    random_state=42,
-    stratify=True
-)
+**Implementation**: `FeatureEncoder` ([src/features/encoding.py:14](../src/features/encoding.py#L14))
 
-stats = verify_stratification(y_train, y_val, y_test)
+Three categorical features are encoded using methods suited to their specific characteristics:
 
-output_dir = Path("data/splits")
-save_splits(X_train, y_train, X_val, y_val, X_test, y_test, output_dir)
+**Countries**: Products may be sold across multiple countries, requiring multi-label representation. The encoder retains the top 15 countries by frequency and applies `MultiLabelBinarizer` to create binary indicator columns.
 
-config = {
-    'train_ratio': 0.7,
-    'val_ratio': 0.15,
-    'test_ratio': 0.15,
-    'random_state': 42,
-    'stratify': True
-}
-save_split_metadata(stats, config, output_dir / 'split_metadata.json')
-```
+**Food Groups** (`pnns_groups_1`): Broad taxonomic categories (e.g., beverages, dairy, cereals) are encoded using one-hot encoding, as the number of unique categories remains manageable.
 
-Data is now ready for training.
+**Food Subgroups** (`pnns_groups_2`): This granular categorization contains numerous unique values. Target encoding replaces each category with its mean target value from the training set, capturing the category-target relationship while controlling dimensionality. Smoothing prevents overfitting on rare categories.
 
-## Components
+This stage transforms 3 categorical features into approximately 30-35 numerical columns.
 
-### MissingValueTransformer
+### Stage 5: Feature Engineering
 
-[outlier_removal.py:9-40](../src/features/outlier_removal.py#L9-L40)
+**Implementation**: `FeatureEngineer` ([src/features/feature_engineering.py:9](../src/features/feature_engineering.py#L9))
 
-Two-step strategy:
-- Drop columns with >95% missing values
-- Impute remaining: numerical → median, `additives_n` → 0, categorical → 'unknown'
-- Drop rows where target is missing
+Feature engineering creates 10 derived features from existing nutritional measurements:
 
-### OutlierRemovalTransformer
+**Nutritional Ratios** (4 features):
+- `sugar_to_carb_ratio`: Proportion of carbohydrates consisting of simple sugars
+- `saturated_to_total_fat_ratio`: Saturated fat fraction of total fat content
+- `fat_to_protein_ratio`: Macronutrient balance indicator
+- Additional nutrient ratios
 
-[outlier_removal.py:43-248](../src/features/outlier_removal.py#L43-L248)
+**Energy Decomposition** (4 features):
+- `energy_density`: Energy content per 100g (kcal/100g)
+- `calories_from_fat`: Energy from fat (9 kcal/g conversion factor)
+- `calories_from_carbs`: Energy from carbohydrates (4 kcal/g conversion factor)
+- `calories_from_protein`: Energy from protein (4 kcal/g conversion factor)
 
-Domain-based validity checks:
-- Fat, saturated fat, carbs, sugars, fiber, proteins: 0-100g per 100g
-- Salt: 0-50g per 100g
+**Health Threshold Flags** (2-3 features):
+- `high_sugar`: Binary indicator for sugar content >15g/100g (WHO threshold)
+- `high_salt`: Binary indicator for salt content >1.5g/100g (WHO threshold)
+- `high_fat`: Binary indicator for fat content >20g/100g
 
-Optional 3×IQR statistical removal (disabled by default).
+Division operations use safe division with NaN handling. Resulting NaN values are imputed as 0.0.
 
-### FeatureEncoder
+### Stage 6: Feature Scaling
 
-[encoding.py:14-163](../src/features/encoding.py#L14-L163)
+**Implementation**: `FeatureScaler` ([src/features/scaling.py:20](../src/features/scaling.py#L20))
 
-Three strategies for three features:
+Feature scaling normalizes numerical features to comparable ranges using automatic scaler selection based on distribution skewness:
 
-- **Countries**: MultiLabelBinarizer for top 15 countries (products can have multiple)
-- **pnns_groups_1**: OneHotEncoder for food categories
-- **pnns_groups_2**: TargetEncoder for fine-grained categories
+- **MinMaxScaler**: Applied when absolute skewness >1.0, compressing values to [0,1] range
+- **StandardScaler**: Applied when |skewness| ≤1.0, standardizing to zero mean and unit variance
 
-### FeatureEngineer
+This adaptive approach accounts for the varying distributions observed in nutritional features. Metadata columns (identifiers, product names, target variable) are excluded from scaling.
 
-[feature_engineering.py:10-123](../src/features/feature_engineering.py#L10-L123)
+### Stage 7: Dimensionality Reduction
 
-Creates 10 derived features:
+**Implementation**: `FeatureReducer` ([src/features/dimensionality_reduction.py:13](../src/features/dimensionality_reduction.py#L13))
 
-**Ratios:**
-- `sugar_to_carbs_ratio` = sugars / carbohydrates
-- `saturated_to_total_fat_ratio` = saturated fat / total fat
-- `protein_to_energy_ratio` = proteins / energy (kcal)
-- `fiber_to_carbs_ratio` = fiber / carbohydrates
+Principal Component Analysis (PCA) reduces the feature space while retaining 95% of total variance. The dataset contains approximately 48-50 features after earlier transformations. PCA projection typically produces 19-20 principal components that collectively preserve 95% of training variance.
 
-**Energy:**
-- `energy_density` = energy (kcal) / 100
+Benefits of this compression:
+- Reduced computational cost for model training
+- Mitigation of multicollinearity through orthogonal components
+- Noise reduction by excluding low-variance components
 
-**Caloric contributions:**
-- `calories_from_fat` = fat × 9
-- `calories_from_carbs` = carbohydrates × 4
-- `calories_from_protein` = proteins × 4
+## Data Partitioning
 
-**WHO thresholds:**
-- `high_sugar_flag` = 1 if sugars > 15g/100g
-- `high_salt_flag` = 1 if salt > 1.5g/100g
+Following preprocessing, the dataset is split into training, validation, and test sets using a 70/15/15 ratio:
 
-### FeatureScaler
+- **Training set**: 68,942 samples (70%) — used for fitting models and estimating transformation parameters
+- **Validation set**: 14,773 samples (15%) — used for hyperparameter tuning and model selection
+- **Test set**: 14,774 samples (15%) — reserved for final performance evaluation
 
-[scaling.py:11-82](../src/features/scaling.py#L11-L82)
+The split is stratified by Nutri-Score grade, ensuring each partition maintains the original class distribution. This prevents evaluation bias and achieves class balance with maximum deviation <0.00004 across splits.
 
-Auto-selects per feature:
-- Skewed (|skewness| > 1.0): MinMaxScaler
-- Symmetric: StandardScaler
-
-Skips metadata columns.
-
-### FeatureReducer
-
-[dimensionality_reduction.py:10-112](../src/features/dimensionality_reduction.py#L10-L112)
-
-PCA that auto-selects components to retain 95% variance. Typically reduces 50-80 features to 20-30 components.
+Of the initial 100,000 samples, 98,489 remain after outlier removal, representing a 1.511% attrition rate.
 
 ## Data Leakage Prevention
 
-Pipeline fits only on training data:
+All transformation parameters—including imputation statistics, encoding mappings, scaling parameters, PCA components, and target encoding values—are computed exclusively from the training partition. Validation and test data are transformed using these training-derived parameters, ensuring no information leakage affects model evaluation.
 
-```python
-def fit(self, X, y=None):
-    if self.split_group_col in X.columns:
-        train_mask = X[self.split_group_col] == 'train'
-        X_train = X[train_mask]
-        y_train = y[train_mask] if y is not None else X_train[self.target_col]
-        self.pipeline.fit(X_train, y_train)
-    else:
-        self.pipeline.fit(X, y)
-```
+The implementation identifies training samples using the `split_group` column when present, or fits on the complete dataset if split information is unavailable.
 
-When a `split_group` column exists, statistics (mean, median, PCA components, target encoding) are computed only on training data. Validation and test sets are transformed using these training statistics.
+## Configuration Parameters
 
-## Configuration
+Pipeline behavior can be customized in [scripts/run_preprocessing.py](../scripts/run_preprocessing.py):
 
 ```python
 PreprocessingPipeline(
-    missing_threshold=0.95,              # Drop features with more missing
-    top_n_countries=15,                  # Countries to keep
-    scaling_method='auto',               # 'auto', 'standard', or 'minmax'
-    scaling_skew_threshold=1.0,          # Skewness cutoff for auto scaling
-    pca_variance_threshold=0.95,         # Variance to retain
-    target_col='nutriscore_grade',       # Target column name
-    split_group_col='split_group',       # Train/val/test indicator
-    preserve_cols=[],                    # Columns to skip
-    include_feature_engineering=True,    # Add derived features
-    feature_engineering_kwargs=None,     # Custom FeatureEngineer args
-    remove_statistical_outliers=False,   # Use statistical outlier removal
-    include_pca=True                     # Apply PCA
+    missing_threshold=0.95,              # Drop columns with >95% missing values
+    top_n_countries=15,                  # Number of countries to retain in encoding
+    scaling_method='auto',               # Options: 'auto', 'standard', 'minmax', 'robust'
+    scaling_skew_threshold=1.0,          # Skewness cutoff for automatic scaler selection
+    pca_variance_threshold=0.95,         # Proportion of variance to retain in PCA
+    target_col='nutriscore_grade',       # Target variable column name
+    include_feature_engineering=True,    # Enable/disable feature engineering stage
+    remove_statistical_outliers=False,   # Enable/disable IQR-based outlier removal
+    include_pca=True                     # Enable/disable dimensionality reduction
 )
 ```
 
+Disabling feature engineering or PCA allows evaluation of their contribution to model performance. Statistical outlier removal should remain disabled for nutritional data.
+
 ## Output Files
 
-After execution:
+### Raw Data
+- `data/raw/openfoodfacts_raw.csv.gz` — Original compressed download from Open Food Facts
 
-- `data/raw/openfoodfacts_raw.csv.gz` - Downloaded dataset
-- `data/processed/openfoodfacts_filtered.csv` - Filtered products
-- `data/processed/metadata.json` - Download stats
-- `data/processed/openfoodfacts_preprocessed.csv` - Processed data
-- `data/splits/X_train.csv`, `y_train.csv` - Training (70%)
-- `data/splits/X_val.csv`, `y_val.csv` - Validation (15%)
-- `data/splits/X_test.csv`, `y_test.csv` - Test (15%)
-- `data/splits/split_metadata.json` - Split stats
+### Intermediate Files
+- `data/processed/openfoodfacts_filtered.csv` — 100,000 filtered products with Nutri-Score labels
+- `data/processed/openfoodfacts_preprocessed.csv` — Complete preprocessed dataset
+- `data/processed/metadata.json` — Download statistics and configuration
 
-Typical results:
-- ~70k train, ~15k val, ~15k test samples
-- 20-30 PCA components
-- Balanced class distribution
-- No missing values, all features scaled
+### Final Splits
+- `data/splits/X_train.csv` & `y_train.csv` — Training features and labels (68,942 samples)
+- `data/splits/X_val.csv` & `y_val.csv` — Validation features and labels (14,773 samples)
+- `data/splits/X_test.csv` & `y_test.csv` — Test features and labels (14,774 samples)
+- `data/splits/split_metadata.json` — Stratification statistics and split configuration

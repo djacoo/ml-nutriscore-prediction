@@ -1,4 +1,3 @@
-"""Categorical feature encoding."""
 import joblib
 import pandas as pd
 import numpy as np
@@ -6,23 +5,26 @@ from collections import Counter
 from typing import Optional, Dict, List
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, MultiLabelBinarizer
+from tqdm import tqdm
 
 
 CATEGORICAL_FEATURES = ["countries", "pnns_groups_1", "pnns_groups_2"]
 
 
 class FeatureEncoder(BaseEstimator, TransformerMixin):
-    """Encodes categorical features using different strategies per feature."""
-
-    def __init__(self, top_n_countries: int = 15):
+    def __init__(self, top_n_countries: int = 15, target_col: str = 'nutriscore_grade'):
         self.top_n_countries = top_n_countries
+        self.target_col = target_col
         self.encoders_: Dict[str, BaseEstimator] = {}
         self.top_countries_: Optional[List[str]] = None
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> 'FeatureEncoder':
-        """Fit encoders for each categorical feature."""
         self.encoders_ = {}
         self.top_countries_ = None
+
+        
+        if y is None and self.target_col in X.columns:
+            y = X[self.target_col]
 
         for feature in CATEGORICAL_FEATURES:
             if feature not in X.columns:
@@ -38,7 +40,6 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
         return self
 
     def _fit_countries_encoder(self, X_countries: pd.Series) -> None:
-        """Fit MultiLabelBinarizer on top N countries."""
         country_lists = X_countries.apply(
             lambda x: [c.strip() for c in str(x).split(',')
                       if c.strip() and c.strip() != 'unknown']
@@ -62,13 +63,11 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
         self.encoders_["countries"] = encoder
 
     def _fit_onehot_encoder(self, X_feature: pd.Series) -> None:
-        """Fit OneHotEncoder with unknown handling."""
         encoder = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
         encoder.fit(X_feature.values.reshape(-1, 1))
         self.encoders_["pnns_groups_1"] = encoder
 
     def _fit_target_encoder(self, X_feature: pd.Series, y: Optional[pd.Series]) -> None:
-        """Fit TargetEncoder (needs target variable)."""
         if y is None:
             raise ValueError("TargetEncoder for pnns_groups_2 requires y parameter")
 
@@ -77,28 +76,42 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
         self.encoders_["pnns_groups_2"] = encoder
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Apply fitted encoders to features."""
         X_encoded = X.copy()
 
-        for feature in CATEGORICAL_FEATURES:
-            if feature not in X_encoded.columns or feature not in self.encoders_:
-                continue
+        features_to_encode = [f for f in CATEGORICAL_FEATURES
+                             if f in X_encoded.columns and f in self.encoders_]
 
-            encoder = self.encoders_[feature]
+        initial_cols = len(X_encoded.columns)
 
-            if isinstance(encoder, MultiLabelBinarizer):
-                X_encoded = self._transform_multilabel(X_encoded, feature, encoder)
-            elif isinstance(encoder, OneHotEncoder):
-                X_encoded = self._transform_onehot(X_encoded, feature, encoder)
-            else:
-                X_encoded = self._transform_target(X_encoded, feature, encoder)
+        with tqdm(total=len(features_to_encode), desc="           Step 2.3: Encoding categorical features",
+                  unit="feature", leave=False, mininterval=0.05, miniters=1) as pbar:
+            for feature in features_to_encode:
+                encoder = self.encoders_[feature]
+
+                if isinstance(encoder, MultiLabelBinarizer):
+                    X_encoded = self._transform_multilabel(X_encoded, feature, encoder)
+                elif isinstance(encoder, OneHotEncoder):
+                    X_encoded = self._transform_onehot(X_encoded, feature, encoder)
+                else:
+                    X_encoded = self._transform_target(X_encoded, feature, encoder)
+
+                pbar.update(1)
+
+        final_cols = len(X_encoded.columns)
+        new_cols = final_cols - initial_cols + len(features_to_encode)
+
+        if features_to_encode:
+            print(f"                     Operation: Categorical feature encoding")
+            encoded_list = ", ".join([f"'{f}'" for f in features_to_encode])
+            print(f"                              - Encoded features: {encoded_list}")
+            print(f"                              - Methods: MultiLabel (countries), OneHot (groups), Target")
+            print(f"                              - Transformation: {len(features_to_encode)} features -> {new_cols} numeric columns")
 
         return X_encoded
 
     def _transform_multilabel(
         self, X: pd.DataFrame, feature: str, encoder: MultiLabelBinarizer
     ) -> pd.DataFrame:
-        """Transform multi-label feature."""
         country_lists = X[feature].apply(
             lambda x: [c.strip() for c in str(x).split(',')
                       if c.strip() and c.strip() != 'unknown']
@@ -123,7 +136,6 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
     def _transform_onehot(
         self, X: pd.DataFrame, feature: str, encoder: OneHotEncoder
     ) -> pd.DataFrame:
-        """Transform with OneHotEncoder."""
         transformed = encoder.transform(X[feature].values.reshape(-1, 1))
         feature_names = encoder.get_feature_names_out([feature])
 
@@ -138,7 +150,6 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
     def _transform_target(
         self, X: pd.DataFrame, feature: str, encoder: TargetEncoder
     ) -> pd.DataFrame:
-        """Transform with TargetEncoder."""
         transformed = encoder.transform(X[feature].values.reshape(-1, 1))
         transformed = np.asarray(transformed).squeeze()
         if transformed.ndim > 1:
@@ -150,14 +161,11 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
     def fit_transform(
         self, X: pd.DataFrame, y: Optional[pd.Series] = None
     ) -> pd.DataFrame:
-        """Fit and transform."""
         return self.fit(X, y).transform(X)
 
     def save(self, path: str) -> None:
-        """Save to file."""
         joblib.dump(self, path)
 
     @classmethod
     def load(cls, path: str) -> 'FeatureEncoder':
-        """Load from file."""
         return joblib.load(path)

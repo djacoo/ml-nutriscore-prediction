@@ -21,9 +21,14 @@ def main():
     parser.add_argument(
         '--scale-method',
         type=str,
-        choices=['standard', 'minmax','auto'],
+        choices=['standard', 'minmax', 'auto'],
         default='standard',
-        help='Scaling method: standard (all features), minmax, robust, or auto (by skewness). Default: standard'
+        help='Scaling method: standard (all features), minmax, or auto (by skewness). Default: standard'
+    )
+    parser.add_argument(
+        '--remove-outliers',
+        action='store_true',
+        help='Remove statistical outliers (IQR-based). Default: keep outliers (include all samples).'
     )
     args = parser.parse_args()
 
@@ -43,6 +48,8 @@ def main():
         print("      PCA disabled (--no-pca): using full feature set")
     if args.scale_method == 'standard':
         print("      Scaling: StandardScaler for all features")
+    if args.remove_outliers:
+        print("      Outliers: IQR-based removal enabled (--remove-outliers)")
 
     print("      Applying transformations...")
     pipeline = PreprocessingPipeline(
@@ -53,7 +60,7 @@ def main():
         pca_variance_threshold=0.98,
         target_col='nutriscore_grade',
         include_feature_engineering=True,
-        remove_statistical_outliers=False,
+        remove_statistical_outliers=args.remove_outliers,
         include_pca=use_pca
     )
 

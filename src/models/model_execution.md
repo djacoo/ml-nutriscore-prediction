@@ -33,22 +33,7 @@ Before training, data is prepared with `scripts/run_preprocessing.py`. You can c
 |------|-------------|---------|
 | `--no-pca` | Skip PCA; keep all engineered features instead of reducing to principal components. Use to compare full-feature vs PCA pipelines. | `python scripts/run_preprocessing.py --no-pca` |
 | `--scale-method` | How to scale numerical features: `standard` (all features), `minmax`, or `auto` (choose by skewness). Default: `standard`. | `python scripts/run_preprocessing.py --scale-method minmax` |
-
-**Examples:**
-
-```bash
-# Default: StandardScaler for all features, PCA enabled
-python scripts/run_preprocessing.py
-
-# No PCA, full feature set (then train and compare metrics)
-python scripts/run_preprocessing.py --no-pca
-
-# MinMaxScaler for all features
-python scripts/run_preprocessing.py --scale-method minmax
-
-# Combine: no PCA + MinMax scaling
-python scripts/run_preprocessing.py --no-pca --scale-method minmax
-```
+| `--remove-outliers` | Remove statistical outliers (IQR-based). Default: keep outliers (include all samples). | `python scripts/run_preprocessing.py --remove-outliers` |
 
 After changing preprocessing, re-run training and evaluation; the splits in `data/splits/` are overwritten.
 

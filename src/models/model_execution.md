@@ -21,7 +21,21 @@ Run the complete training and evaluation pipeline:
 4. Displays detailed metrics and classification report
 5. Saves model to `models/trained/{model_name}/`
 
-**Prerequisites:** Preprocessed data must exist in `data/splits/`. Run `./run-preprocessing.sh` or './run-preprocessing.sh' first if needed.
+**Prerequisites:** Preprocessed data must exist in `data/splits/`. Run `./run-preprocessing.sh` or `./run-preprocessing.bat` first if needed.
+
+---
+
+## Preprocessing Options
+
+Before training, data is prepared with `scripts/run_preprocessing.py`. You can change how features are built and scaled with these flags:
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--no-pca` | Skip PCA; keep all engineered features instead of reducing to principal components. Use to compare full-feature vs PCA pipelines. | `python scripts/run_preprocessing.py --no-pca` |
+| `--scale-method` | How to scale numerical features: `standard` (all features), `minmax`, or `auto` (choose by skewness). Default: `standard`. | `python scripts/run_preprocessing.py --scale-method minmax` |
+| `--remove-outliers` | Remove statistical outliers (IQR-based). Default: keep outliers (include all samples). | `python scripts/run_preprocessing.py --remove-outliers` |
+
+After changing preprocessing, re-run training and evaluation; the splits in `data/splits/` are overwritten.
 
 ---
 
@@ -147,6 +161,7 @@ Example metadata:
 All metrics shown as macro (unweighted) and weighted (by class support).
 
 ---
+
 
 ## Package Structure
 

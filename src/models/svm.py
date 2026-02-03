@@ -24,6 +24,8 @@ class SVMModel(BaseModel):
         degree: int = 3,
         class_weight: str = 'balanced',
         probability: bool = True,
+        cache_size: int = 2000,
+        max_iter: int = -1,
         random_state: int = 42,
         **kwargs
     ):
@@ -34,6 +36,8 @@ class SVMModel(BaseModel):
             'degree': degree,
             'class_weight': class_weight,
             'probability': probability,
+            'cache_size': cache_size,
+            'max_iter': max_iter,
             'random_state': random_state,
             **kwargs
         }

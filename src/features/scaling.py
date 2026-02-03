@@ -18,6 +18,7 @@ METADATA_COLS = ['nutriscore_grade', 'split_group', 'product_name', 'brands', 'c
 
 
 LOG1P_BEFORE_STANDARD = [
+    'energy_100g',
     'fat_to_protein_ratio',
     'sugar_to_carb_ratio',
     'saturated_to_total_fat_ratio',

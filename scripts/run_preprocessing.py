@@ -80,7 +80,7 @@ def main():
     print("      Applying transformations...")
     pipeline = PreprocessingPipeline(
         missing_threshold=0.95,
-        top_n_countries=15,
+        top_n_countries=10,
         scaling_method=args.scale_method,
         scaling_skew_threshold=1.0,
         pca_variance_threshold=0.98,

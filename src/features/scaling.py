@@ -26,7 +26,7 @@ LOG1P_BEFORE_STANDARD = [
 
 
 class FeatureScaler(BaseEstimator, TransformerMixin):
-    def __init__(self, method: str = 'auto', skew_threshold: float = 1.0):
+    def __init__(self, method: str = 'standard', skew_threshold: float = 1.0):
         self.method = method
         self.skew_threshold = skew_threshold
         self.scalers_: Dict[str, BaseEstimator] = {}

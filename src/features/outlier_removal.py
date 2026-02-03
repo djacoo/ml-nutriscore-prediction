@@ -56,7 +56,9 @@ class OutlierRemovalTransformer(BaseEstimator, TransformerMixin):
             'sugars_100g': (0, 100),
             'fiber_100g': (0, 100),
             'proteins_100g': (0, 100),
-            'salt_100g': (0, 50),
+            'salt_100g': (0, 100),
+            'energy_100g': (0, 5000),
+            'energy-kcal_100g': (0, 1000),
         }
 
         self.rows_removed_ = 0

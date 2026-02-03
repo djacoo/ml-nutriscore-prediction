@@ -21,7 +21,7 @@ class LogisticRegressionModel(BaseModel):
         C: float = 1.0,
         solver: str = 'lbfgs',
         max_iter: int = 1000,
-        class_weight: str = 'balanced',  # Added to handle class imbalance
+        class_weight: str = 'balanced',
         random_state: int = 42,
         **kwargs
     ):

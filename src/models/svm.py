@@ -18,7 +18,7 @@ class SVMModel(BaseModel):
 
     def __init__(
         self,
-        C: float = 1.0,
+        C: float = 10.0,
         kernel: str = 'rbf',
         gamma: str = 'scale',
         degree: int = 3,

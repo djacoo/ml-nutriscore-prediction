@@ -14,7 +14,8 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix
 )
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
+from tqdm import tqdm
 
 
 class BaseModel(ABC):
@@ -64,18 +65,37 @@ class BaseModel(ABC):
             print(f"\nPerforming {cv_folds}-fold stratified cross-validation...")
 
         if cv_folds > 1:
-            cv_model = self._build_model()
             skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
+            cv_scores = []
 
-            cv_scores = cross_val_score(
-                cv_model,
-                X_train,
-                y_train,
-                cv=skf,
-                scoring='accuracy',
-                n_jobs=-1
+            # Manual cross-validation with progress bar
+            fold_iterator = tqdm(
+                enumerate(skf.split(X_train, y_train), 1),
+                total=cv_folds,
+                desc="CV Progress",
+                disable=not verbose,
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
             )
 
+            for _, (train_idx, val_idx) in fold_iterator:
+                # Create fresh model for this fold
+                cv_model = self._build_model()
+
+                # Split data for this fold
+                X_fold_train = X_train.iloc[train_idx] if hasattr(X_train, 'iloc') else X_train[train_idx]
+                y_fold_train = y_train[train_idx]
+                X_fold_val = X_train.iloc[val_idx] if hasattr(X_train, 'iloc') else X_train[val_idx]
+                y_fold_val = y_train[val_idx]
+
+                # Train and evaluate
+                cv_model.fit(X_fold_train, y_fold_train)
+                fold_score = cv_model.score(X_fold_val, y_fold_val)
+                cv_scores.append(fold_score)
+
+                # Update progress bar with current fold score
+                fold_iterator.set_postfix({'fold_acc': f'{fold_score:.4f}'})
+
+            cv_scores = np.array(cv_scores)
             cv_mean = cv_scores.mean()
             cv_std = cv_scores.std()
 

@@ -21,14 +21,34 @@ def main():
     parser.add_argument(
         '--scale-method',
         type=str,
-        choices=['standard', 'minmax', 'auto'],
+        choices=['standard', 'minmax', 'robust', 'auto'],
         default='standard',
-        help='Scaling method: standard (all features), minmax, or auto (by skewness). Default: standard'
+        help='Scaling method: standard, minmax, robust, or auto (by skewness). Default: standard'
     )
     parser.add_argument(
         '--remove-outliers',
         action='store_true',
         help='Remove statistical outliers (IQR-based). Default: keep outliers (include all samples).'
+    )
+    parser.add_argument(
+        '--eda-only',
+        action='store_true',
+        help='Run preprocessing and save a single CSV for EDA only (no train/val/test splits).'
+    )
+    parser.add_argument(
+        '--no-scaling',
+        action='store_true',
+        help='Skip feature scaling (StandardScaler/MinMaxScaler).'
+    )
+    parser.add_argument(
+        '--no-encoding',
+        action='store_true',
+        help='Skip categorical encoding (countries, pnns_groups_1, pnns_groups_2). Categorical columns remain.'
+    )
+    parser.add_argument(
+        '--no-feature-engineering',
+        action='store_true',
+        help='Skip derived/engineered features (e.g. ratios, composite nutritional features).'
     )
     args = parser.parse_args()
 
@@ -50,6 +70,12 @@ def main():
         print("      Scaling: StandardScaler for all features")
     if args.remove_outliers:
         print("      Outliers: IQR-based removal enabled (--remove-outliers)")
+    if args.no_scaling:
+        print("      Scaling disabled (--no-scaling)")
+    if args.no_encoding:
+        print("      Encoding disabled (--no-encoding): categorical columns kept as-is")
+    if args.no_feature_engineering:
+        print("      Feature engineering disabled (--no-feature-engineering): no derived features")
 
     print("      Applying transformations...")
     pipeline = PreprocessingPipeline(
@@ -59,13 +85,23 @@ def main():
         scaling_skew_threshold=1.0,
         pca_variance_threshold=0.98,
         target_col='nutriscore_grade',
-        include_feature_engineering=True,
+        include_feature_engineering=not args.no_feature_engineering,
         remove_statistical_outliers=args.remove_outliers,
-        include_pca=use_pca
+        include_pca=use_pca,
+        include_encoding=not args.no_encoding,
+        include_scaling=not args.no_scaling
     )
 
     df_processed = pipeline.fit_transform(df)
     print(f"      Processed: {len(df_processed):,} products, {len(df_processed.columns)} features")
+
+    if args.eda_only:
+        print("      Saving EDA dataset (no splits)...")
+        eda_path = Path("data/processed/openfoodfacts_eda.csv")
+        df_processed.to_csv(eda_path, index=False)
+        print(f"      EDA CSV saved: {eda_path}")
+        print("      Preprocessing complete (EDA only)")
+        return
 
     print("      Saving preprocessed dataset...")
     output_path = Path("data/processed/openfoodfacts_preprocessed.csv")

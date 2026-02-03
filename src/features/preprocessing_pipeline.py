@@ -20,7 +20,9 @@ def create_preprocessing_pipeline(
     include_feature_engineering: bool = True,
     feature_engineering_kwargs: Optional[dict] = None,
     remove_statistical_outliers: bool = False,
-    include_pca: bool = True
+    include_pca: bool = True,
+    include_encoding: bool = True,
+    include_scaling: bool = True
 ) -> Pipeline:
     steps = [
         ('missing_values', MissingValueTransformer(
@@ -31,14 +33,17 @@ def create_preprocessing_pipeline(
             target_col=target_col,
             remove_statistical_outliers=remove_statistical_outliers
         )),
-        ('encoding', FeatureEncoder(top_n_countries=top_n_countries, target_col=target_col)),
     ]
+
+    if include_encoding:
+        steps.append(('encoding', FeatureEncoder(top_n_countries=top_n_countries, target_col=target_col)))
 
     if include_feature_engineering:
         fe_kwargs = feature_engineering_kwargs or {}
         steps.append(('feature_engineering', FeatureEngineer(**fe_kwargs)))
 
-    steps.append(('scaling', FeatureScaler(method=scaling_method, skew_threshold=scaling_skew_threshold)))
+    if include_scaling:
+        steps.append(('scaling', FeatureScaler(method=scaling_method, skew_threshold=scaling_skew_threshold)))
 
     if include_pca:
         steps.append(('pca', FeatureReducer(variance_threshold=pca_variance_threshold)))
@@ -60,7 +65,9 @@ class PreprocessingPipeline:
         include_feature_engineering: bool = True,
         feature_engineering_kwargs: Optional[dict] = None,
         remove_statistical_outliers: bool = False,
-        include_pca: bool = True
+        include_pca: bool = True,
+        include_encoding: bool = True,
+        include_scaling: bool = True
     ):
         self.target_col = target_col
         self.split_group_col = split_group_col
@@ -76,7 +83,9 @@ class PreprocessingPipeline:
             include_feature_engineering=include_feature_engineering,
             feature_engineering_kwargs=feature_engineering_kwargs,
             remove_statistical_outliers=remove_statistical_outliers,
-            include_pca=include_pca
+            include_pca=include_pca,
+            include_encoding=include_encoding,
+            include_scaling=include_scaling
         )
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> 'PreprocessingPipeline':

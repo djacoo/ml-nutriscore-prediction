@@ -9,21 +9,21 @@
   },
   "training_history": {
     "train_metrics": {
-      "accuracy": 0.6579370948797146
+      "accuracy": 0.7040791171821754
     },
     "val_metrics": {
-      "accuracy": 0.6592677810110307,
-      "precision_macro": 0.6333446309659181,
-      "precision_weighted": 0.6656045926244659,
-      "recall_macro": 0.643262746263386,
-      "recall_weighted": 0.6592677810110307,
-      "f1_macro": 0.6366984109950451,
-      "f1_weighted": 0.6612160077707394
+      "accuracy": 0.7013602219665697,
+      "precision_macro": 0.6750019775213453,
+      "precision_weighted": 0.709362540711155,
+      "recall_macro": 0.6820959585111493,
+      "recall_weighted": 0.7013602219665697,
+      "f1_macro": 0.6773905546339438,
+      "f1_weighted": 0.7044837480111843
     },
     "test_metrics": {},
-    "training_time": 3.314688,
-    "created_at": "2026-01-31T18:43:43.687323",
-    "last_trained": "2026-01-31T18:43:47.003033"
+    "training_time": 1.23355,
+    "created_at": "2026-02-03T10:28:16.075340",
+    "last_trained": "2026-02-03T10:28:17.310156"
   },
   "classes": [
     "a",

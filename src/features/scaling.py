@@ -17,6 +17,13 @@ SCALERS = {
 METADATA_COLS = ['nutriscore_grade', 'split_group', 'product_name', 'brands', 'code']
 
 
+LOG1P_BEFORE_STANDARD = [
+    'fat_to_protein_ratio',
+    'sugar_to_carb_ratio',
+    'saturated_to_total_fat_ratio',
+]
+
+
 class FeatureScaler(BaseEstimator, TransformerMixin):
     def __init__(self, method: str = 'auto', skew_threshold: float = 1.0):
         self.method = method
@@ -41,7 +48,11 @@ class FeatureScaler(BaseEstimator, TransformerMixin):
             else:
                 scaler = SCALERS[self.method]()
 
-            scaler.fit(X[feature].values.reshape(-1, 1))
+            values = X[feature].values.astype(float)
+            if self.method == 'standard' and feature in LOG1P_BEFORE_STANDARD:
+                values = np.log1p(np.clip(values, a_min=0.0, a_max=None))
+
+            scaler.fit(values.reshape(-1, 1))
             self.scalers_[feature] = scaler
 
         return self
@@ -64,8 +75,12 @@ class FeatureScaler(BaseEstimator, TransformerMixin):
         with tqdm(total=len(scalers_list), desc="           Step 2.5: Scaling numerical features",
                   unit="feature", leave=False, mininterval=0.05, miniters=1) as pbar:
             for feature, scaler in scalers_list:
+                values = X_scaled[feature].values.astype(float)
+                if self.method == 'standard' and feature in LOG1P_BEFORE_STANDARD:
+                    values = np.log1p(np.clip(values, a_min=0.0, a_max=None))
+
                 X_scaled[feature] = scaler.transform(
-                    X_scaled[feature].values.reshape(-1, 1)
+                    values.reshape(-1, 1)
                 ).flatten()
                 pbar.update(1)
 

@@ -7,8 +7,19 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import OneHotEncoder, TargetEncoder, MultiLabelBinarizer
 from tqdm import tqdm
 
+from data.countries_mappings import normalize_country
+
 
 CATEGORICAL_FEATURES = ["countries", "pnns_groups_1", "pnns_groups_2"]
+
+
+def parse_countries(country_string: str) -> List[str]:
+    countries = []
+    for c in str(country_string).split(','):
+        c = c.strip()
+        if c and c.lower() != 'unknown':
+            countries.append(normalize_country(c))
+    return countries
 
 
 class FeatureEncoder(BaseEstimator, TransformerMixin):
@@ -40,21 +51,20 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
         return self
 
     def _fit_countries_encoder(self, X_countries: pd.Series) -> None:
-        country_lists = X_countries.apply(
-            lambda x: [c.strip() for c in str(x).split(',')
-                      if c.strip() and c.strip() != 'unknown']
-        ).tolist()
+        country_lists = X_countries.apply(parse_countries).tolist()
 
+        # Count normalized country occurrences
         country_counts = Counter()
         for country_list in country_lists:
-            country_counts.update(country_list)
+            # Use set to avoid counting duplicates within same product
+            country_counts.update(set(country_list))
 
         self.top_countries_ = [
             country for country, _ in country_counts.most_common(self.top_n_countries)
         ]
 
         filtered_data = [
-            [c for c in country_list if c in self.top_countries_]
+            list(set(c for c in country_list if c in self.top_countries_))
             for country_list in country_lists
         ]
 
@@ -112,13 +122,11 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
     def _transform_multilabel(
         self, X: pd.DataFrame, feature: str, encoder: MultiLabelBinarizer
     ) -> pd.DataFrame:
-        country_lists = X[feature].apply(
-            lambda x: [c.strip() for c in str(x).split(',')
-                      if c.strip() and c.strip() != 'unknown']
-        ).tolist()
+        country_lists = X[feature].apply(parse_countries).tolist()
 
+        # Filter to top countries
         filtered_data = [
-            [c for c in country_list if c in self.top_countries_]
+            list(set(c for c in country_list if c in self.top_countries_))
             for country_list in country_lists
         ]
 

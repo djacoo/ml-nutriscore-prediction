@@ -123,3 +123,4 @@ models/trained/**/*.onnx
 
 # model tuning results
 models/tuning/
+plots/

@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Union
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
 from .base_model import BaseModel
@@ -9,34 +9,36 @@ from .model_registry import register_model
 
 
 @register_model(
-    name='logistic_regression',
-    description='Logistic Regression baseline model',
-    category='linear',
+    name='knn',
+    description='K-Nearest Neighbors classifier',
+    category='instance-based',
     requires_probability=True
 )
-class LogisticRegressionModel(BaseModel):
+class KNNModel(BaseModel):
 
     def __init__(
         self,
-        C: float = 1.0,
-        solver: str = 'lbfgs',
-        max_iter: int = 1000,
-        class_weight: str = 'balanced',
-        random_state: int = 42,
+        n_neighbors: int = 15,
+        weights: str = 'distance',
+        algorithm: str = 'auto',
+        metric: str = 'minkowski',
+        p: int = 2,
+        n_jobs: int = -1,
         **kwargs
     ):
         hyperparameters = {
-            'C': C,
-            'solver': solver,
-            'max_iter': max_iter,
-            'class_weight': class_weight,
-            'random_state': random_state,
+            'n_neighbors': n_neighbors,
+            'weights': weights,
+            'algorithm': algorithm,
+            'metric': metric,
+            'p': p,
+            'n_jobs': n_jobs,
             **kwargs
         }
-        super().__init__(model_name='LogisticRegression', **hyperparameters)
+        super().__init__(model_name='KNN', **hyperparameters)
 
-    def _build_model(self) -> LogisticRegression:
-        return LogisticRegression(**self.hyperparameters)
+    def _build_model(self) -> KNeighborsClassifier:
+        return KNeighborsClassifier(**self.hyperparameters)
 
     def _fit(
         self,

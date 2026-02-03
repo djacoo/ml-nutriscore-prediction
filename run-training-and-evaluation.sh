@@ -54,7 +54,7 @@ print_step "1/3" "Select model to train"
 echo ""
 echo -e "      ${BOLD}Available models:${NC}"
 echo -e "      ${CYAN}1)${NC} Logistic Regression"
-echo -e "      ${CYAN}2)${NC} KNN (not yet implemented)"
+echo -e "      ${CYAN}2)${NC} KNN"
 echo -e "      ${CYAN}3)${NC} SVM (not yet implemented)"
 echo -e "      ${CYAN}4)${NC} Random Forest (not yet implemented)"
 echo -e "      ${CYAN}5)${NC} XGBoost (not yet implemented)"
@@ -69,8 +69,8 @@ case $choice in
         MODEL_DISPLAY="Logistic Regression"
         ;;
     2)
-        echo -e "${YELLOW}      KNN is not yet implemented.${NC}"
-        exit 1
+        MODEL_NAME="knn"
+        MODEL_DISPLAY="KNN"
         ;;
     3)
         echo -e "${YELLOW}      SVM is not yet implemented.${NC}"

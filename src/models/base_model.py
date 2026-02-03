@@ -111,7 +111,13 @@ class BaseModel(ABC):
                 print(f"Individual fold scores: {[f'{score:.4f}' for score in cv_scores]}")
 
         # Train on full training set
-        train_metrics = self._fit(X_train, y_train, X_val, y_val, verbose)
+        if verbose:
+            print("\nTraining on full dataset...")
+            with tqdm(total=1, desc="Training", bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
+                train_metrics = self._fit(X_train, y_train, X_val, y_val, verbose=False)
+                pbar.update(1)
+        else:
+            train_metrics = self._fit(X_train, y_train, X_val, y_val, verbose)
 
         end_time = datetime.now()
         training_duration = (end_time - start_time).total_seconds()
@@ -179,17 +185,32 @@ class BaseModel(ABC):
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
 
-        y_pred = self.predict(X)
+        if verbose:
+            with tqdm(total=2, desc=f"Evaluating on {dataset_name}", bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
+                y_pred = self.predict(X)
+                pbar.update(1)
 
-        metrics = {
-            'accuracy': accuracy_score(y_true, y_pred),
-            'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
-            'precision_weighted': precision_score(y_true, y_pred, average='weighted', zero_division=0),
-            'recall_macro': recall_score(y_true, y_pred, average='macro', zero_division=0),
-            'recall_weighted': recall_score(y_true, y_pred, average='weighted', zero_division=0),
-            'f1_macro': f1_score(y_true, y_pred, average='macro', zero_division=0),
-            'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
-        }
+                metrics = {
+                    'accuracy': accuracy_score(y_true, y_pred),
+                    'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
+                    'precision_weighted': precision_score(y_true, y_pred, average='weighted', zero_division=0),
+                    'recall_macro': recall_score(y_true, y_pred, average='macro', zero_division=0),
+                    'recall_weighted': recall_score(y_true, y_pred, average='weighted', zero_division=0),
+                    'f1_macro': f1_score(y_true, y_pred, average='macro', zero_division=0),
+                    'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
+                }
+                pbar.update(1)
+        else:
+            y_pred = self.predict(X)
+            metrics = {
+                'accuracy': accuracy_score(y_true, y_pred),
+                'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
+                'precision_weighted': precision_score(y_true, y_pred, average='weighted', zero_division=0),
+                'recall_macro': recall_score(y_true, y_pred, average='macro', zero_division=0),
+                'recall_weighted': recall_score(y_true, y_pred, average='weighted', zero_division=0),
+                'f1_macro': f1_score(y_true, y_pred, average='macro', zero_division=0),
+                'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
+            }
 
         if dataset_name == 'test':
             self.training_history['test_metrics'] = metrics

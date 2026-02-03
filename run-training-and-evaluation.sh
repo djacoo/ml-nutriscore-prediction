@@ -55,7 +55,7 @@ echo ""
 echo -e "      ${BOLD}Available models:${NC}"
 echo -e "      ${CYAN}1)${NC} Logistic Regression"
 echo -e "      ${CYAN}2)${NC} KNN"
-echo -e "      ${CYAN}3)${NC} SVM (not yet implemented)"
+echo -e "      ${CYAN}3)${NC} SVM"
 echo -e "      ${CYAN}4)${NC} Random Forest (not yet implemented)"
 echo -e "      ${CYAN}5)${NC} XGBoost (not yet implemented)"
 echo -e "      ${CYAN}6)${NC} Naive Bayes (not yet implemented)"
@@ -73,8 +73,8 @@ case $choice in
         MODEL_DISPLAY="KNN"
         ;;
     3)
-        echo -e "${YELLOW}      SVM is not yet implemented.${NC}"
-        exit 1
+        MODEL_NAME="svm"
+        MODEL_DISPLAY="SVM"
         ;;
     4)
         echo -e "${YELLOW}      Random Forest is not yet implemented.${NC}"

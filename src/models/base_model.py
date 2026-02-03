@@ -14,6 +14,7 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix
 )
+from sklearn.model_selection import cross_val_score, StratifiedKFold
 
 
 class BaseModel(ABC):
@@ -27,6 +28,7 @@ class BaseModel(ABC):
             'train_metrics': {},
             'val_metrics': {},
             'test_metrics': {},
+            'cv_scores': {},
             'training_time': None,
             'created_at': datetime.now().isoformat(),
             'last_trained': None
@@ -43,6 +45,7 @@ class BaseModel(ABC):
         y_train: Union[np.ndarray, pd.Series],
         X_val: Optional[Union[np.ndarray, pd.DataFrame]] = None,
         y_val: Optional[Union[np.ndarray, pd.Series]] = None,
+        cv_folds: int = 5,
         verbose: bool = True
     ) -> Dict[str, float]:
         if verbose:
@@ -56,6 +59,38 @@ class BaseModel(ABC):
 
         start_time = datetime.now()
 
+        # Perform cross-validation before training on full dataset
+        if cv_folds > 1 and verbose:
+            print(f"\nPerforming {cv_folds}-fold stratified cross-validation...")
+
+        if cv_folds > 1:
+            cv_model = self._build_model()
+            skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
+
+            cv_scores = cross_val_score(
+                cv_model,
+                X_train,
+                y_train,
+                cv=skf,
+                scoring='accuracy',
+                n_jobs=-1
+            )
+
+            cv_mean = cv_scores.mean()
+            cv_std = cv_scores.std()
+
+            self.training_history['cv_scores'] = {
+                'scores': cv_scores.tolist(),
+                'mean': float(cv_mean),
+                'std': float(cv_std),
+                'folds': cv_folds
+            }
+
+            if verbose:
+                print(f"Cross-validation accuracy: {cv_mean:.4f} (+/- {cv_std:.4f})")
+                print(f"Individual fold scores: {[f'{score:.4f}' for score in cv_scores]}")
+
+        # Train on full training set
         train_metrics = self._fit(X_train, y_train, X_val, y_val, verbose)
 
         end_time = datetime.now()
@@ -74,6 +109,9 @@ class BaseModel(ABC):
         if verbose:
             print(f"\nTraining completed in {training_duration:.2f} seconds")
             print(f"Training accuracy: {train_metrics.get('accuracy', 0):.4f}")
+            if cv_folds > 1:
+                cv_mean = self.training_history['cv_scores']['mean']
+                print(f"CV accuracy: {cv_mean:.4f}")
             if X_val is not None:
                 val_acc = self.training_history['val_metrics'].get('accuracy', 0)
                 print(f"Validation accuracy: {val_acc:.4f}")

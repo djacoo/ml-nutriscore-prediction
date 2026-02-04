@@ -46,17 +46,6 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
                 if X_engineered[col].isna().any():
                     X_engineered[col] = X_engineered[col].fillna(0.0)
 
-        if derived_cols:
-            print(f"                     Operation: Feature engineering")
-            print(f"                              - Created {len(derived_cols)} new features")
-            
-            example_features = ", ".join([f"'{col}'" for col in derived_cols[:4]])
-            if len(derived_cols) > 4:
-                example_features += f" (+{len(derived_cols)-4} more)"
-            print(f"                              - Examples: {example_features}")
-            feature_types = [name for _, name in active_steps]
-            print(f"                              - Categories: {', '.join(feature_types)}")
-
         return X_engineered
 
     def _add_ratios(self, X: pd.DataFrame) -> pd.DataFrame:

@@ -53,10 +53,8 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
     def _fit_countries_encoder(self, X_countries: pd.Series) -> None:
         country_lists = X_countries.apply(parse_countries).tolist()
 
-        # Count normalized country occurrences
         country_counts = Counter()
         for country_list in country_lists:
-            # Use set to avoid counting duplicates within same product
             country_counts.update(set(country_list))
 
         self.top_countries_ = [
@@ -106,16 +104,6 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
                     X_encoded = self._transform_target(X_encoded, feature, encoder)
 
                 pbar.update(1)
-
-        final_cols = len(X_encoded.columns)
-        new_cols = final_cols - initial_cols + len(features_to_encode)
-
-        if features_to_encode:
-            print(f"                     Operation: Categorical feature encoding")
-            encoded_list = ", ".join([f"'{f}'" for f in features_to_encode])
-            print(f"                              - Encoded features: {encoded_list}")
-            print(f"                              - Methods: MultiLabel (countries), OneHot (groups), Target")
-            print(f"                              - Transformation: {len(features_to_encode)} features -> {new_cols} numeric columns")
 
         return X_encoded
 

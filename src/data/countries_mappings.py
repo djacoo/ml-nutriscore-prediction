@@ -209,17 +209,12 @@ COUNTRY_OVERRIDES = {
 
 
 def normalize_country(country_name: str) -> str:
-
-    # Normalize a country name to its canonical form.
-
     if not country_name:
         return country_name
-    
-    # Convert to lowercase
+
     country_lower = country_name.lower().strip()
-    
-    # Check if it's in our overrides
+
     if country_lower in COUNTRY_OVERRIDES:
         return COUNTRY_OVERRIDES[country_lower]
-    
+
     return country_name.strip()

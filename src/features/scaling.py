@@ -85,15 +85,6 @@ class FeatureScaler(BaseEstimator, TransformerMixin):
                 ).flatten()
                 pbar.update(1)
 
-        if scalers_list:
-            print(f"                     Operation: Feature scaling")
-            print(f"                              - Scaled {len(scalers_list)} numerical features")
-            scaler_summary = ", ".join([f"{count} {name.replace('Scaler', '')}"
-                                       for name, count in scaler_types.items()])
-            print(f"                              - Methods: {scaler_summary}")
-            if self.method == 'auto':
-                print(f"                              - Selection: Auto (based on skewness threshold={self.skew_threshold})")
-
         return X_scaled
 
     def fit_transform(

@@ -89,7 +89,7 @@ case $choice in
         ;;
 esac
 
-echo -e "      ${GREEN}${NC} Selected: ${BOLD}${MODEL_DISPLAY}${NC}"
+echo -e "      ${GREEN}Selected: ${BOLD}${MODEL_DISPLAY}${NC}"
 echo ""
 
 print_step "2/3" "Training ${MODEL_DISPLAY}"
@@ -112,13 +112,11 @@ ELAPSED=$((END_TIME - START_TIME))
 MINUTES=$((ELAPSED / 60))
 SECONDS=$((ELAPSED % 60))
 
-echo -e "${CYAN}${BOX_TL}$(printf "${BOX_H}%.0s" {1..68})${BOX_TR}${NC}"
-printf "${CYAN}${BOX_V}${NC} ${BOLD}${GREEN}Complete Workflow Finished${NC}%-40s ${CYAN}${BOX_V}${NC}\n" ""
-echo -e "${CYAN}${BOX_V}${NC}                                                                    ${CYAN}${BOX_V}${NC}"
-printf "${CYAN}${BOX_V}${NC}   Model: ${BOLD}${MODEL_DISPLAY}${NC}%-${pad}s ${CYAN}${BOX_V}${NC}\n" ""
-printf "${CYAN}${BOX_V}${NC}   Time elapsed: ${BOLD}%dm %ds${NC}%-${pad2}s ${CYAN}${BOX_V}${NC}\n" "$MINUTES" "$SECONDS" ""
-printf "${CYAN}${BOX_V}${NC}   Model saved: ${BOLD}${MODEL_PATH}${NC}%-${pad3}s ${CYAN}${BOX_V}${NC}\n" ""
-echo -e "${CYAN}${BOX_BL}$(printf "${BOX_H}%.0s" {1..68})${BOX_BR}${NC}"
+echo ""
+echo -e "${GREEN}${BOLD}Workflow Complete${NC}"
+echo -e "  Model: ${BOLD}${MODEL_DISPLAY}${NC}"
+echo -e "  Time: ${BOLD}${MINUTES}m ${SECONDS}s${NC}"
+echo -e "  Saved: ${MODEL_PATH}"
 echo ""
 echo -e "${GREEN}${BOLD}Next steps:${NC}"
 echo -e "  • View results: cat models/trained/${MODEL_NAME}/${MODEL_NAME}_v1_metadata.json"

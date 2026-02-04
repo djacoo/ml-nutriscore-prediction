@@ -27,11 +27,7 @@ class MissingValueTransformer(BaseEstimator, TransformerMixin):
         if self.target_col not in X_work.columns and y is not None:
             X_work[self.target_col] = y.values
 
-        with tqdm(total=1, desc="           Step 2.0: Handling missing values",
-                  unit="dataset", leave=False, mininterval=0.05, miniters=1) as pbar:
-            result = self.handler.handle_missing_values(X_work, target_col=self.target_col)
-            pbar.update(1)
-
+        result = self.handler.handle_missing_values(X_work, target_col=self.target_col)
         return result
 
     def fit_transform(
@@ -191,22 +187,6 @@ class OutlierRemovalTransformer(BaseEstimator, TransformerMixin):
         self.outlier_report_['removal_summary'] = removal_reasons
         self.outlier_report_['rows_removed'] = int(total_removed)
         self.outlier_report_['removal_percentage'] = float(removal_pct)
-
-        
-        features_with_outliers = sorted(removal_reasons.items(),
-                                       key=lambda x: x[1]['count'], reverse=True)[:3]
-
-        print(f"                     Operation: Outlier detection and removal")
-        print(f"                              - Method: Domain-based range validation")
-        validated_cols = ", ".join([f"'{col}'" for col in cols_to_check])
-        print(f"                              - Validated: {validated_cols}")
-        print(f"                              - Total removed: {total_removed:,} rows ({removal_pct:.2f}%)")
-        if features_with_outliers:
-            outlier_details = ", ".join([f"'{feat}' ({info['count']})"
-                                        for feat, info in features_with_outliers])
-            print(f"                              - Top outliers: {outlier_details}")
-        if self.remove_statistical_outliers:
-            print(f"                              - Statistical method: IQR (3x threshold)")
 
         self.rows_removed_ = total_removed
         return df_clean

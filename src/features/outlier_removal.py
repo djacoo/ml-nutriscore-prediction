@@ -6,6 +6,16 @@ from tqdm import tqdm
 from data.preprocessing import MissingValueHandler
 
 
+"""
+This class handles the missing values in the dataset.
+It inherit from BaseEstimator and TransformerMixin to be used in a scikit-learn pipeline.
+
+Note: we choose the following methods to handle the missing values:
+- Dropping features with more than 95% missing values
+- Imputing the missing values with the median value
+- Labeling the missing values as 'unknown'
+- Removing the samples without Nutri-Score labels
+"""
 class MissingValueTransformer(BaseEstimator, TransformerMixin):
     def __init__(
         self, threshold_drop_feature: float = 0.95, target_col: str = 'nutriscore_grade'
@@ -64,6 +74,13 @@ class OutlierRemovalTransformer(BaseEstimator, TransformerMixin):
         self.rows_removed_ = 0
         self.outlier_report_: Optional[Dict] = None
 
+    """
+    This method detects the outliers in the dataset using the interquartile range (IQR) method.
+
+    Note: this is disabled by default, since it is too aggressive for nutritional data.
+    Nutritional data from openfoodfacts contains very skewed data with some extreme values that are
+    correct.
+    """
     def _detect_outliers(self, df: pd.DataFrame) -> Dict:
         outlier_info = {}
 

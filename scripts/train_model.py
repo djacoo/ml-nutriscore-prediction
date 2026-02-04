@@ -153,7 +153,7 @@ def main():
 
     print_step("2/4", "Initializing model")
     try:
-        # Build hyperparameters dict from command-line args
+        
         model_kwargs = {}
         if args.C is not None:
             model_kwargs['C'] = args.C

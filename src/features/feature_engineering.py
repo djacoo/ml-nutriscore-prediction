@@ -5,6 +5,16 @@ from typing import Optional
 from sklearn.base import BaseEstimator, TransformerMixin
 from tqdm import tqdm
 
+"""
+This class creates derived features from the dataset.
+It inherit from BaseEstimator and TransformerMixin to be used in a scikit-learn pipeline.
+
+Note: we choose 4 different types of derived features:
+- Nutrient ratios
+- Energy density
+- Caloric contributions
+- Boolean flags
+"""
 
 class FeatureEngineer(BaseEstimator, TransformerMixin):
     def __init__(

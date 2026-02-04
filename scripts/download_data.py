@@ -42,6 +42,10 @@ RELEVANT_COLUMNS = [
     'main_category',
 ]
 
+"""
+This method downloads the dataset from the given URL and saves it to the specified output path,
+we display a progress bar using tqdm to visualize the process. 
+"""
 
 def download_dataset(url, output_path):
     try:
@@ -65,10 +69,17 @@ def download_dataset(url, output_path):
         print(f"      Error: {e}")
         return False
 
+"""
+This method loads the dataset from the given input path. 
+Filter the dataset to only include the relevant columns and the relevant grades.
+Sample the dataset to the given size if specified.
 
+NOte:Since the dataset is too large and some problem were encountered, 
+we read the dataset in chunks in orden to avoid memory issues.
+"""
 def load_and_filter_data(input_path, output_path, sample_size=None, chunksize=10000):
     try:
-        print(f"      Processing data...")
+        print("      Processing data...")
 
         total_rows = 0
         filtered_rows = 0

@@ -8,6 +8,12 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from src.models import ModelRegistry
 
+"""
+This script trains a machine learning model for Nutri-Score prediction.
+It loads the preprocessed data, initializes the model, trains the model and saves the model.
+It also displays the training metrics and the evaluation metrics.
+It can work with different models and versions, and with different hyperparameters.
+"""
 
 BLUE = '\033[0;34m'
 GREEN = '\033[0;32m'

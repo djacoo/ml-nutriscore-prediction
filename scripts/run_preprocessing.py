@@ -2,7 +2,6 @@ import argparse
 import sys
 from pathlib import Path
 
-# Allow imports of features.* and data.* (packages under src/)
 _project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_project_root / "src"))
 
@@ -10,6 +9,14 @@ import pandas as pd
 from features.preprocessing_pipeline import PreprocessingPipeline
 from data.data_loader import split_data, save_splits, verify_stratification, save_split_metadata
 
+"""
+This script preprocesses the dataset for Nutri-Score prediction.
+It loads the dataset, applies the preprocessing pipeline and saves the preprocessed dataset.
+It also creates the train/validation/test splits and saves the splits.
+
+Note: We added some arguments to the script to allow for customization of the preprocessing pipeline.
+and to solve accuracy issues we encountered in first experiments.
+"""
 
 def main():
     parser = argparse.ArgumentParser(description='Preprocess Open Food Facts data for Nutri-Score prediction')

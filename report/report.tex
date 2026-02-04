@@ -378,7 +378,7 @@ SVM with RBF kernel got the best results: 83.5\% accuracy and 81.6\% F1-Macro. P
 
 \subsection{Cross-Validation Results}
 
-The 5-fold cross-validation confirmed our validation findings (Table \ref{tab:cv_results}). Standard deviations were consistently low (all under 0.003), meaning performance stayed stable across different data splits. This gave us confidence our train/validation split wasn't unusual. We expected more variance given the noisy crowdsourced data, but stratified splitting plus large fold size (35,000 samples each) handled it.
+The 5-fold cross-validation gave this: (Table \ref{tab:cv_results}). Standard deviations were all low (all under 0.003), this means that performance stayed stable across different data splits. We expected more variance because of the noisy data, but stratified splitting and using large folds (about 35,000 samples each) went well.
 
 \begin{table}[h]
 \centering
@@ -399,27 +399,17 @@ XGBoost & 0.811 & 0.003 \\
 
 \subsection{Error Analysis}
 
-Looking at confusion matrices, all models showed similar error patterns. They often confused adjacent grades (C as D, B as C), which makes sense for products near grade boundaries. Big errors (predicting E for an A product) were rare but more common with Logistic Regression and KNN, usually on weird nutritional profiles. Class B was hardest to predict -- it's both the smallest class (11.6\%) and has a narrow nutritional range between A and C.
+Looking at confusion matrices, all models showed similar error patterns. They often confused close grades (C as D, B as C). Big errors (predicting E for an A product) were rare but more common with Logistic Regression and KNN. Class B was the harder to predict -- it's both the smallest class (11.6\%) and has a large nutritional range between A and C.
 
-We tested feature engineering impact by running XGBoost with only raw features (no ratios, engineered features, or PCA). F1-Macro dropped from 78.9\% to 71.2\% -- a 7.7 point decrease. This shows engineered features like \texttt{sugar\_to\_carb\_ratio} and \texttt{energy\_density} really help.
+\subsection{Observations}
 
-We manually checked 100 misclassified XGBoost predictions: 35\% were borderline cases near thresholds; 28\% had missing \texttt{fruits-vegetables-nuts} data that would probably change the grade; 20\% were unusual products (oils, supplements, spices); 12\% looked like labeling errors in the dataset; only 5\% were true model failures. The low rate of real errors suggests we're close to the best we can do with this data.
+\textbf{Non-linearity matters.} The gap between Logistic Regression (68.1\%) and non-linear models is a lot. Nutri-Score uses thresholds and interactions that linear models can't handle well.
 
-\subsection{Key Findings}
+\textbf{Ensemble methods balance performance and speed.} SVM performed the best, but Random Forest and XGBoost were very close with much lower cost. The 500x speed difference between XGBoost (37s) and SVM (6588s) is important, thinking of real-deployment use cases.
 
-\textbf{Non-linearity matters.} The gap between Logistic Regression (68.1\%) and non-linear models is significant. Nutri-Score uses thresholds and interactions that linear models can't handle well.
+\textbf{Feature engineering is important.} Our project showed that engineered features added a lot of importance. Nutritional ratios provide context -- 10g sugar means different things if total carbs are 80g rather than 15g.
 
-\textbf{Ensemble methods balance performance and speed.} SVM performed best, but Random Forest and XGBoost came within 4-5 points at much lower cost. The 500x speed difference between XGBoost (37s) and SVM (6588s) matters for real deployment.
-
-\textbf{Feature engineering helps.} Our ablation test showed engineered features added 7.7 points. Nutritional ratios provide context -- 10g sugar means different things if total carbs are 80g vs. 15g.
-
-\textbf{Missing fruit/vegetable data limits performance.} This feature is important for the official formula, especially for distinguishing A from B. We had to drop it (95\%+ missing), which probably causes errors in healthier grades.
-
-Getting ~80\% F1-Macro on this noisy dataset seems reasonable. We're approximating a deterministic formula with ML, which inherently adds error. But this lets us classify products that would otherwise have no grade. For Open Food Facts, even imperfect predictions are useful.
-
-
-
-
+\textbf{Missing fruit/vegetable data limits performance.} This feature is important, especially for distinguishing A from B. We had to drop it (95\%+ missing), which probably caused errors in healty products grades.
 
 
 

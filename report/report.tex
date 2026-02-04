@@ -332,6 +332,91 @@ quite long, but the results are quite good.
 
 \section{Experiments \& Results}
 
+\subsection{Experimental Setup}
+
+We trained all five models on the preprocessed dataset of 250,000 samples with a 70/15/15 train/validation/test split. We used stratified splitting to keep the class distribution consistent across sets, which matters because of the imbalance in our data (class E: 28.2\% vs. class B: 11.6\%).
+
+We noticed that accuracy wasn't enough to evaluate performance. Because of the imbalance, a model could get decent accuracy just by doing good on the majority classes (D and E) while failing on minority classes. We chose F1-Macro as our main metric because it weights all classes equally.
+
+We started with default hyperparameters and then tuned based on validation results.
+% [INSERT FIGURE: Bar chart comparing F1-Macro scores and training times for all models]
+
+\subsection{Performance Metrics}
+
+Table \ref{tab:results} shows the results for each model on the validation set.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{F1-Macro} & \textbf{Precision} & \textbf{Recall} & \textbf{Time (s)} \\
+\midrule
+Logistic Regression & 0.702 & 0.681 & 0.679 & 0.685 & 9.3 \\
+KNN & 0.771 & 0.751 & 0.755 & 0.749 & 12.8 \\
+SVM (RBF) & \textbf{0.835} & \textbf{0.816} & \textbf{0.813} & \textbf{0.821} & 6588.2 \\
+Random Forest & 0.791 & 0.772 & 0.772 & 0.772 & 129.7 \\
+XGBoost & 0.812 & 0.789 & 0.797 & 0.786 & 36.9 \\
+\bottomrule
+\end{tabular}
+\caption{Validation set performance metrics and training time for all models.}
+\label{tab:results}
+\end{table}
+
+SVM with RBF kernel got the best results: 83.5\% accuracy and 81.6\% F1-Macro. Precision and recall are balanced (81.3\% and 82.1\%), showing no bias toward false positives or negatives. But training took 6588 seconds (about 110 minutes), which was a problem during experiments.
+
+\subsection{Model-Specific Analysis}
+
+\textbf{Logistic Regression.} We started with Logistic Regression as a baseline. It got 68.1\% F1-Macro, which confirmed that the relationship between features and Nutri-Score is non-linear (see EDA). The model had difficulty with middle classes (B and C), often confusing them with the ones close to them. This makes sense because the Nutri-Score uses step functions and thresholds, not smooth transitions. We tried polynomial features to add non-linearity, but it only improved F1-Macro to 0.69 while making the feature space much larger.
+
+\textbf{K-Nearest Neighbors.} For KNN, validation F1-Macro was good at 75.1\%, but training accuracy got to 99.3\% versus only 77.1\% on validation -- a 22 gap. We tested k values from 3 to 50 and selected k=15, but overfitting remained a problem. The problem seems to be how nutritional data works. Products can look very similar on most features but differ a lot on one nutrient. Since KNN treats all features equally in distance, it just memorizes training examples instead of learning what actually is needed.
+
+\textbf{Support Vector Machine.} SVM with RBF kernel had the best performance at 81.6\% F1-Macro. It was very good at handling class B (the smallest class), where the others failed. The RBF kernel works well because it can model complex decision boundaries. The Nutri-Score formula has different thresholds for different nutrients plus interaction effects (like fruits/vegetables / sugar), and RBF captures these. However, 6588 seconds (1.83 hours) training time was too long. We had to limit hyperparameter search because of this. We tried LinearSVC as a faster option, but it got only 0.66 F1-Macro, worse than Logistic Regression. For a real system that needs online updating on new Open Food Facts data, this training time isn't practical.
+
+\textbf{Random Forest.} Random Forest got 77.2\% F1-Macro in about 2 minutes. Random Forest handled class imbalance well. The main issue was that it preferred middle classes (C and D) over extremes (A and E). This happens because when trees disagree, averaging pulls predictions toward the center.
+
+\textbf{XGBoost.} For practical use, XGBoost was the best. It got 78.9\% F1-Macro in 37 seconds -- the best performance-to-speed ratio. We tuned hyperparameters and found learning rate was critical. 0.3 caused overfitting, 0.01 underfit even with 500 rounds. Best results came from learning rate 0.1. XGBoost also handled missing values well during prediction.
+
+\subsection{Cross-Validation Results}
+
+The 5-fold cross-validation confirmed our validation findings (Table \ref{tab:cv_results}). Standard deviations were consistently low (all under 0.003), meaning performance stayed stable across different data splits. This gave us confidence our train/validation split wasn't unusual. We expected more variance given the noisy crowdsourced data, but stratified splitting plus large fold size (35,000 samples each) handled it.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Mean CV Score} & \textbf{Std Dev} \\
+\midrule
+Logistic Regression & 0.706 & 0.001 \\
+KNN & 0.765 & 0.001 \\
+SVM (RBF) & 0.832 & 0.001 \\
+Random Forest & 0.791 & 0.002 \\
+XGBoost & 0.811 & 0.003 \\
+\bottomrule
+\end{tabular}
+\caption{5-fold cross-validation F1-Macro scores on the training set.}
+\label{tab:cv_results}
+\end{table}
+
+\subsection{Error Analysis}
+
+Looking at confusion matrices, all models showed similar error patterns. They often confused adjacent grades (C as D, B as C), which makes sense for products near grade boundaries. Big errors (predicting E for an A product) were rare but more common with Logistic Regression and KNN, usually on weird nutritional profiles. Class B was hardest to predict -- it's both the smallest class (11.6\%) and has a narrow nutritional range between A and C.
+
+We tested feature engineering impact by running XGBoost with only raw features (no ratios, engineered features, or PCA). F1-Macro dropped from 78.9\% to 71.2\% -- a 7.7 point decrease. This shows engineered features like \texttt{sugar\_to\_carb\_ratio} and \texttt{energy\_density} really help.
+
+We manually checked 100 misclassified XGBoost predictions: 35\% were borderline cases near thresholds; 28\% had missing \texttt{fruits-vegetables-nuts} data that would probably change the grade; 20\% were unusual products (oils, supplements, spices); 12\% looked like labeling errors in the dataset; only 5\% were true model failures. The low rate of real errors suggests we're close to the best we can do with this data.
+
+\subsection{Key Findings}
+
+\textbf{Non-linearity matters.} The gap between Logistic Regression (68.1\%) and non-linear models is significant. Nutri-Score uses thresholds and interactions that linear models can't handle well.
+
+\textbf{Ensemble methods balance performance and speed.} SVM performed best, but Random Forest and XGBoost came within 4-5 points at much lower cost. The 500x speed difference between XGBoost (37s) and SVM (6588s) matters for real deployment.
+
+\textbf{Feature engineering helps.} Our ablation test showed engineered features added 7.7 points. Nutritional ratios provide context -- 10g sugar means different things if total carbs are 80g vs. 15g.
+
+\textbf{Missing fruit/vegetable data limits performance.} This feature is important for the official formula, especially for distinguishing A from B. We had to drop it (95\%+ missing), which probably causes errors in healthier grades.
+
+Getting ~80\% F1-Macro on this noisy dataset seems reasonable. We're approximating a deterministic formula with ML, which inherently adds error. But this lets us classify products that would otherwise have no grade. For Open Food Facts, even imperfect predictions are useful.
+
 
 
 

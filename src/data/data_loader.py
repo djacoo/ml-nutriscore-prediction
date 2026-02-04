@@ -5,7 +5,11 @@ from pathlib import Path
 from typing import Tuple, Dict
 from sklearn.model_selection import train_test_split
 
-
+"""
+Function to split the dataset into train, validation and test sets.
+The split is stratified by the target variable to ensure that the distribution of the target variable
+is the same in all sets.
+"""
 def split_data(
     df: pd.DataFrame,
     target_col: str = 'nutriscore_grade',
@@ -50,7 +54,10 @@ def split_data(
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
-
+"""
+Function to add a split group column to the dataset.
+The split group column is used to identify the split of the dataset.
+"""
 def add_split_group_column(
     df: pd.DataFrame,
     train_indices: np.ndarray,
@@ -105,7 +112,9 @@ def verify_stratification(
 
     return stats
 
-
+"""
+Function to save the splits to as csv files.
+"""
 def save_splits(
     X_train: pd.DataFrame,
     y_train: pd.Series,

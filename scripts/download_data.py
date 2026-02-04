@@ -163,7 +163,7 @@ def main():
     else:
         print(f"      Using existing raw file at {RAW_FILE}")
 
-    df = load_and_filter_data(RAW_FILE, FILTERED_FILE, sample_size=100000)
+    df = load_and_filter_data(RAW_FILE, FILTERED_FILE, sample_size=250000)
     print(f"      Dataset ready: {df.shape[0]:,} products, {df.shape[1]} features")
 
 

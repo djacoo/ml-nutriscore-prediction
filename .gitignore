@@ -124,3 +124,21 @@ models/trained/**/*.onnx
 # model tuning results
 models/tuning/
 plots/
+
+# LaTeX auxiliary files in report/
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.fdb_latexmk
+report/*.fls
+report/*.synctex.gz
+report/*.bbl
+report/*.blg
+report/*.lof
+report/*.lot
+report/*.nav
+report/*.snm
+report/*.vrb
+# Keep PDF output
+!report/*.pdf

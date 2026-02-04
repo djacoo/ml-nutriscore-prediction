@@ -1,10 +1,10 @@
 {
   "model_name": "XGBoost",
   "hyperparameters": {
-    "n_estimators": 100,
+    "n_estimators": 300,
     "max_depth": 6,
     "learning_rate": 0.1,
-    "subsample": 0.8,
+    "subsample": 1.0,
     "colsample_bytree": 0.8,
     "reg_alpha": 0.1,
     "reg_lambda": 1.0,
@@ -16,33 +16,33 @@
   },
   "training_history": {
     "train_metrics": {
-      "accuracy": 0.814806222905279
+      "accuracy": 0.8686388816380985
     },
     "val_metrics": {
-      "accuracy": 0.7750186074835916,
-      "precision_macro": 0.7618500246270441,
-      "precision_weighted": 0.775872437969418,
-      "recall_macro": 0.7425888715346841,
-      "recall_weighted": 0.7750186074835916,
-      "f1_macro": 0.7465324214224491,
-      "f1_weighted": 0.7718874729028453
+      "accuracy": 0.8121920848898273,
+      "precision_macro": 0.7967178239611066,
+      "precision_weighted": 0.8113552001570434,
+      "recall_macro": 0.7864787592996894,
+      "recall_weighted": 0.8121920848898273,
+      "f1_macro": 0.7888039876726557,
+      "f1_weighted": 0.8099928468865187
     },
     "test_metrics": {},
     "cv_scores": {
       "scores": [
-        0.7662196447988402,
-        0.7681600695954763,
-        0.7680150790198637,
-        0.7646802957807742,
-        0.7716398434101783
+        0.8067229327996752,
+        0.8130456219727951,
+        0.8151048464282606,
+        0.8097682647408567,
+        0.8125235650685925
       ],
-      "mean": 0.7677429865210266,
-      "std": 0.0023295549277244595,
+      "mean": 0.811433046202036,
+      "std": 0.0029061457118542077,
       "folds": 5
     },
-    "training_time": 26.215753,
-    "created_at": "2026-02-03T22:14:09.748611",
-    "last_trained": "2026-02-03T22:14:35.968884"
+    "training_time": 36.885069,
+    "created_at": "2026-02-04T17:20:04.855448",
+    "last_trained": "2026-02-04T17:20:41.740594"
   },
   "classes": [
     "a",

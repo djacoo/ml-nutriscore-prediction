@@ -18,10 +18,10 @@ class RandomForestModel(BaseModel):
 
     def __init__(
         self,
-        n_estimators: int = 500,
-        max_depth: Optional[int] = 30,
+        n_estimators: int = 300,
+        max_depth: Optional[int] = 15,
         min_samples_split: int = 2,
-        min_samples_leaf: int = 1,
+        min_samples_leaf: int = 2,
         max_features: str = 'sqrt',
         class_weight: str = 'balanced',
         n_jobs: int = -1,

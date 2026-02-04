@@ -1,214 +1,64 @@
-# Model Training & Evaluation
+# Model execution
 
-Quick guide to train and evaluate ML models for Nutri-Score prediction.
+## QuickStart
 
----
-
-## Quick Start (Recommended)
-
-### Interactive Workflow
-
-Run the complete training and evaluation pipeline:
+Run the interactive script:
 
 ```bash
 ./run-training-and-evaluation.sh
 ```
 
-**What it does:**
-1. Shows menu of available models
-2. Trains selected model on training data with validation
-3. Evaluates trained model on test set
-4. Displays detailed metrics and classification report
-5. Saves model to `models/trained/{model_name}/`
+This trains and evaluates any model. Preprocessing must be ran first with `./run-preprocessing.sh`.
 
-**Prerequisites:** Preprocessed data must exist in `data/splits/`. Run `./run-preprocessing.sh` or `./run-preprocessing.bat` first if needed.
+## Preprocessing
 
----
-
-## Preprocessing Options
-
-Before training, data is prepared with `scripts/run_preprocessing.py`. You can change how features are built and scaled with these flags:
-
-| Flag | Description | Example |
-|------|-------------|---------|
-| `--no-pca` | Skip PCA; keep all engineered features instead of reducing to principal components. Use to compare full-feature vs PCA pipelines. | `python scripts/run_preprocessing.py --no-pca` |
-| `--scale-method` | How to scale numerical features: `standard` (all features), `minmax`, or `auto` (choose by skewness). Default: `standard`. | `python scripts/run_preprocessing.py --scale-method minmax` |
-| `--remove-outliers` | Remove statistical outliers (IQR-based). Default: keep outliers (include all samples). | `python scripts/run_preprocessing.py --remove-outliers` |
-
-After changing preprocessing, re-run training and evaluation; the splits in `data/splits/` are overwritten.
-
----
-
-## Manual Training
-
-### Train a Model
+Modify change preprocessing with these flags:
 
 ```bash
-python scripts/train_model.py --model logistic_regression
+# Skip PCA
+python scripts/run_preprocessing.py --no-pca
+
+# Change scaling method (standard, minmax, or auto)
+python scripts/run_preprocessing.py --scale-method minmax
+
+# Remove outliers
+python scripts/run_preprocessing.py --remove-outliers
 ```
 
-**What happens:**
-- Loads train/val data from `data/splits/`
-- Trains model on training set with validation monitoring
-- Saves model to `models/trained/logistic_regression/logistic_regression_v1.joblib`
-- Saves metadata with train/val metrics to `models/trained/logistic_regression/logistic_regression_v1_metadata.json`
-- Displays validation accuracy and next steps for testing
+## Training
 
-### Training Options
+Train a model manually:
 
 ```bash
-# List available models
-python scripts/train_model.py --list-models
+# Basic
+python scripts/train_model.py --model logistic_regression
 
-# Train with custom version
+# With custom version
 python scripts/train_model.py --model logistic_regression --version v2
 
-# Train with version and description
-python scripts/train_model.py --model logistic_regression --version v2 --description baseline
+# List available models
+python scripts/train_model.py --list-models
 ```
 
-**Arguments:**
+Training will save two files:
+- `{model_name}_v1.joblib` - the trained model
+- `{model_name}_v1_metadata.json` - hyperparameters and metrics
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--model` | Model name (required) | - |
-| `--version` | Model version | v1 |
-| `--description` | Optional description suffix | empty |
-| `--data-dir` | Data directory | data/splits |
-| `--output-dir` | Output directory | models/trained |
+## Evaluation
 
----
-
-## Manual Evaluation
-
-### Evaluate a Saved Model
+Evaluate a trained model on test set:
 
 ```bash
-python scripts/evaluate_model.py \
-    --model-path models/trained/logistic_regression/logistic_regression_v1.joblib \
-    --model-type logistic_regression
-```
-
-**What happens:**
-- Loads test data from `data/splits/`
-- Loads saved model
-- Evaluates on test set
-- Displays performance metrics
-
-### Evaluation Options
-
-```bash
-# Show detailed classification report
-python scripts/evaluate_model.py \
-    --model-path models/trained/logistic_regression/logistic_regression_v1.joblib \
-    --model-type logistic_regression \
-    --show-report
-
-# Show confusion matrix
-python scripts/evaluate_model.py \
-    --model-path models/trained/logistic_regression/logistic_regression_v1.joblib \
-    --model-type logistic_regression \
-    --show-confusion-matrix
-```
-
-**Arguments:**
-
-| Argument | Description | Required |
-|----------|-------------|----------|
-| `--model-path` | Path to .joblib file | Yes |
-| `--model-type` | Model type name | Yes |
-| `--data-dir` | Test data directory | No (default: data/splits) |
-| `--show-report` | Show classification report | No |
-| `--show-confusion-matrix` | Show confusion matrix | No |
-
----
-
-## Understanding Results
-
-### Saved Files
-
-**Model file (.joblib)**: Binary file with trained model, weights, and training history
-
-**Metadata file (_metadata.json)**: JSON file with hyperparameters and metrics
-
-Example metadata:
-```json
-{
-  "model_name": "LogisticRegression",
-  "hyperparameters": {
-    "C": 1.0,
-    "solver": "lbfgs",
-    "max_iter": 1000,
-    "random_state": 42
-  },
-  "training_history": {
-    "train_metrics": {"accuracy": 0.5528},
-    "val_metrics": {"accuracy": 0.5490},
-    "test_metrics": {"accuracy": 0.5485},
-    "training_time": 0.41
-  },
-  "classes": ["a", "b", "c", "d", "e"]
-}
-```
-
-### Metrics
-
-- **Accuracy**: Percentage of correct predictions
-- **Precision**: Correctness of positive predictions
-- **Recall**: Coverage of actual positives
-- **F1-Score**: Harmonic mean of precision and recall (best for imbalanced data)
-
-All metrics shown as macro (unweighted) and weighted (by class support).
-
----
-
-
-## Package Structure
-
-### Core Files
-
-```
-src/models/
-├── base_model.py           # Abstract base class (train, predict, evaluate, save, load)
-├── model_registry.py       # Registry system (@register_model decorator)
-├── logistic_regression.py  # Logistic Regression implementation
-└── __init__.py
-
-scripts/
-├── train_model.py          # Universal training script
-└── evaluate_model.py       # Universal evaluation script
-
-run-training-and-evaluation.sh  # Interactive workflow
-```
-
-**BaseModel**: Abstract class providing consistent interface (train, predict, evaluate, save, load)
-
-**ModelRegistry**: Central registry for all models. Use `@register_model` decorator to auto-register new models.
-
-**Training Scripts**: Universal scripts that work with any registered model.
-
----
-
-## Complete Workflow Example
-
-```bash
-# 1. Preprocess data (if not already done)
-./run-preprocessing.sh
-
-# 2. Train model (trains with validation monitoring)
-python scripts/train_model.py --model logistic_regression --version v1
-
-# 3. Evaluate on test set (separate step for unbiased evaluation)
 python scripts/evaluate_model.py \
     --model-path models/trained/logistic_regression/logistic_regression_v1.joblib \
     --model-type logistic_regression \
     --show-report \
     --show-confusion-matrix
-
-# 4. View saved metadata
-cat models/trained/logistic_regression/logistic_regression_v1_metadata.json
 ```
 
-**Note:** Training and testing are separate steps following ML best practices - the test set is only used once for final evaluation.
+## Metrics
 
----
+- **Accuracy** - % correct predictions
+- **Precision** - how many positive predictions were right
+- **Recall** - how many actual positives were found
+- **F1-Score** - balanced metric for imbalanced classes

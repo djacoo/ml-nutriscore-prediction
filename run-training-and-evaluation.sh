@@ -57,10 +57,9 @@ echo -e "      ${CYAN}1)${NC} Logistic Regression"
 echo -e "      ${CYAN}2)${NC} KNN"
 echo -e "      ${CYAN}3)${NC} SVM"
 echo -e "      ${CYAN}4)${NC} Random Forest"
-echo -e "      ${CYAN}5)${NC} XGBoost (not yet implemented)"
-echo -e "      ${CYAN}6)${NC} Naive Bayes (not yet implemented)"
+echo -e "      ${CYAN}5)${NC} XGBoost"
 echo ""
-echo -e -n "      ${BOLD}Enter choice [1-6]:${NC} "
+echo -e -n "      ${BOLD}Enter choice [1-5]:${NC} "
 read choice
 
 case $choice in
@@ -81,15 +80,11 @@ case $choice in
         MODEL_DISPLAY="Random Forest"
         ;;
     5)
-        echo -e "${YELLOW}      XGBoost is not yet implemented.${NC}"
-        exit 1
-        ;;
-    6)
-        echo -e "${YELLOW}      Naive Bayes is not yet implemented.${NC}"
-        exit 1
+        MODEL_NAME="xgboost"
+        MODEL_DISPLAY="XGBoost"
         ;;
     *)
-        echo -e "${RED}      Invalid choice. Please select 1-6.${NC}"
+        echo -e "${RED}      Invalid choice. Please select 1-5.${NC}"
         exit 1
         ;;
 esac

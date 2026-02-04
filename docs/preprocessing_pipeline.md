@@ -16,7 +16,7 @@ This script orchestrates the entire preprocessing workflow:
 
 1. Creates or activates the `ml-predictor` virtual environment
 2. Installs all dependencies from [pyproject.toml](../pyproject.toml)
-3. Downloads and filters 100,000 product samples from Open Food Facts
+3. Downloads and filters 250,000 product samples from Open Food Facts
 4. Applies all data preprocessing transformations
 5. Generates stratified train/validation/test splits
 
@@ -50,7 +50,7 @@ The preprocessing pipeline consists of seven sequential stages, each implemented
 
 **Implementation**: [scripts/download_data.py](../scripts/download_data.py)
 
-The pipeline downloads the complete Open Food Facts dataset (approximately 7GB compressed) and filters for products containing Nutri-Score labels (grades a-e). A random sample of 100,000 products is extracted and saved to `data/processed/openfoodfacts_filtered.csv`.
+The pipeline downloads the complete Open Food Facts dataset (approximately 7GB compressed) and filters for products containing Nutri-Score labels (grades a-e). A random sample of 250,000 products is extracted and saved to `data/processed/openfoodfacts_filtered.csv`.
 
 ### Stage 2: Missing Value Handling
 
@@ -145,13 +145,13 @@ Benefits of this compression:
 
 Following preprocessing, the dataset is split into training, validation, and test sets using a 70/15/15 ratio:
 
-- **Training set**: 68,942 samples (70%) — used for fitting models and estimating transformation parameters
-- **Validation set**: 14,773 samples (15%) — used for hyperparameter tuning and model selection
-- **Test set**: 14,774 samples (15%) — reserved for final performance evaluation
+- **Training set**: 172,395 samples (70%) — used for fitting models and estimating transformation parameters
+- **Validation set**: 36,942 samples (15%) — used for hyperparameter tuning and model selection
+- **Test set**: 36,942 samples (15%) — reserved for final performance evaluation
 
-The split is stratified by Nutri-Score grade, ensuring each partition maintains the original class distribution. This prevents evaluation bias and achieves class balance with maximum deviation <0.00004 across splits.
+The split is stratified by Nutri-Score grade, ensuring each partition maintains the original class distribution. This prevents evaluation bias and achieves class balance across splits.
 
-Of the initial 100,000 samples, 98,489 remain after outlier removal, representing a 1.511% attrition rate.
+Of the initial 250,000 samples, 246,279 remain after outlier removal, representing a 1.5% attrition rate.
 
 ## Data Leakage Prevention
 
@@ -185,12 +185,12 @@ Disabling feature engineering or PCA allows evaluation of their contribution to 
 - `data/raw/openfoodfacts_raw.csv.gz` — Original compressed download from Open Food Facts
 
 ### Intermediate Files
-- `data/processed/openfoodfacts_filtered.csv` — 100,000 filtered products with Nutri-Score labels
+- `data/processed/openfoodfacts_filtered.csv` — 250,000 filtered products with Nutri-Score labels
 - `data/processed/openfoodfacts_preprocessed.csv` — Complete preprocessed dataset
 - `data/processed/metadata.json` — Download statistics and configuration
 
 ### Final Splits
-- `data/splits/X_train.csv` & `y_train.csv` — Training features and labels (68,942 samples)
-- `data/splits/X_val.csv` & `y_val.csv` — Validation features and labels (14,773 samples)
-- `data/splits/X_test.csv` & `y_test.csv` — Test features and labels (14,774 samples)
+- `data/splits/X_train.csv` & `y_train.csv` — Training features and labels (172,395 samples)
+- `data/splits/X_val.csv` & `y_val.csv` — Validation features and labels (36,942 samples)
+- `data/splits/X_test.csv` & `y_test.csv` — Test features and labels (36,942 samples)
 - `data/splits/split_metadata.json` — Stratification statistics and split configuration

@@ -38,10 +38,10 @@ class XGBoostModel(BaseModel):
 
     def __init__(
         self,
-        n_estimators: int = 100,
+        n_estimators: int = 300,
         max_depth: int = 6,
         learning_rate: float = 0.1,
-        subsample: float = 0.8,
+        subsample: float = 1.0,
         colsample_bytree: float = 0.8,
         reg_alpha: float = 0.1,
         reg_lambda: float = 1.0,

@@ -392,7 +392,7 @@ As we will see in the results section, Random Forest performed very well with ou
 \subsubsection{XGBoost}
 XGBoost (eXtreme Gradient Boosting) is an open-source, distributed machine learning library that implements gradient-boosted decision
  trees—a supervised boosting algorithm based on gradient descent. It is known for its speed, efficiency, and its ability to scale effectively to large
-  datasets \cite{Chen:2016:XST:2939672.2939785}.
+  datasets \cite{xgboost}.
 
 
 
@@ -512,11 +512,11 @@ The main limitation is missing fruits/vegetables/nuts data (95\%+ missing). This
 
 For future work, advanced methods could handle missing nutrients better than just dropping them. Testing on the full dataset would show if performance is the same even if the scale is larger. Category-specific models (beverages vs. dairy) might perform better than one general model.
 
+\newpage
 \section{References}
 \begin{thebibliography}{9}
 \bibitem{ncdalliance}
 NCD Alliance. \textit{Unhealthy Diets}. \url{https://ncdalliance.org/explore-ncds/risk-factors/unhealthy-diets}
-
 
 \bibitem{imputation}
 ResearchGate. \textit{Evaluating missing value imputation methods for food composition databases}. \url{https://www.researchgate.net/publication/341157370_Evaluating_missing_value_imputation_methods_for_food_composition_databases}
@@ -529,6 +529,10 @@ Nalin Arora, Aviral Chauhan, Siddhant Rana, Mahansh Aditya, Sumit Bhagat, Aditya
 
 \bibitem{pycountry2023}
 Flying Circus. \textit{pycountry: ISO country, subdivision, language, currency and script definitions and translations} (Python package version 22.3.5), 2023. \url{https://github.com/flyingcircusio/pycountry}
+
+\bibitem{xgboost}
+Tianqi Chen and Carlos Guestrin. \textit{XGBoost: A Scalable Tree Boosting System}. Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD '16), 2016, pp. 785--794. ACM, New York, NY, USA.\\
+\url{http://doi.acm.org/10.1145/2939672.2939785}
 
 \end{thebibliography}
 

@@ -8,6 +8,12 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from src.models import ModelRegistry
 
+"""
+This script evaluates a trained model on a test set.
+It loads the test set and the trained model, and evaluates the model on the test set.
+It displays the evaluation metrics and the classification report.
+"""
+
 
 BLUE = '\033[0;34m'
 GREEN = '\033[0;32m'

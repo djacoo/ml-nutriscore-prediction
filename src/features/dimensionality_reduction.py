@@ -53,9 +53,7 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
         self.explained_variance_ratio_ = self.pca_.explained_variance_ratio_
 
         cumulative_variance = np.cumsum(self.explained_variance_ratio_)[-1]
-        print(f"\nPCA fitted: {n_comp} components selected")
-        print(f"Explained variance: {cumulative_variance:.4f} ({cumulative_variance*100:.2f}%)")
-        print(f"Feature reduction: {len(self.feature_columns_)} -> {n_comp} components")
+        print(f"PCA: {len(self.feature_columns_)} features → {n_comp} components ({cumulative_variance*100:.1f}% variance)")
 
         return self
 

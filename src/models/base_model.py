@@ -49,51 +49,34 @@ class BaseModel(ABC):
         cv_folds: int = 5,
         verbose: bool = True
     ) -> Dict[str, float]:
-        if verbose:
-            print(f"\nTraining {self.model_name}...")
-            print(f"Training samples: {len(X_train)}")
-            if X_val is not None:
-                print(f"Validation samples: {len(X_val)}")
-
         if self.model is None:
             self.model = self._build_model()
 
         start_time = datetime.now()
 
-        # Perform cross-validation before training on full dataset
-        if cv_folds > 1 and verbose:
-            print(f"\nPerforming {cv_folds}-fold stratified cross-validation...")
-
         if cv_folds > 1:
             skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
             cv_scores = []
 
-            # Manual cross-validation with progress bar
             fold_iterator = tqdm(
                 enumerate(skf.split(X_train, y_train), 1),
                 total=cv_folds,
-                desc="CV Progress",
+                desc="Cross-validation",
                 disable=not verbose,
-                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}'
             )
 
             for _, (train_idx, val_idx) in fold_iterator:
-                # Create fresh model for this fold
                 cv_model = self._build_model()
 
-                # Split data for this fold
                 X_fold_train = X_train.iloc[train_idx] if hasattr(X_train, 'iloc') else X_train[train_idx]
                 y_fold_train = y_train[train_idx]
                 X_fold_val = X_train.iloc[val_idx] if hasattr(X_train, 'iloc') else X_train[val_idx]
                 y_fold_val = y_train[val_idx]
 
-                # Train and evaluate
                 cv_model.fit(X_fold_train, y_fold_train)
                 fold_score = cv_model.score(X_fold_val, y_fold_val)
                 cv_scores.append(fold_score)
-
-                # Update progress bar with current fold score
-                fold_iterator.set_postfix({'fold_acc': f'{fold_score:.4f}'})
 
             cv_scores = np.array(cv_scores)
             cv_mean = cv_scores.mean()
@@ -107,13 +90,10 @@ class BaseModel(ABC):
             }
 
             if verbose:
-                print(f"Cross-validation accuracy: {cv_mean:.4f} (+/- {cv_std:.4f})")
-                print(f"Individual fold scores: {[f'{score:.4f}' for score in cv_scores]}")
+                print(f"CV accuracy: {cv_mean:.4f} ± {cv_std:.4f}")
 
-        # Train on full training set
         if verbose:
-            print("\nTraining on full dataset...")
-            with tqdm(total=1, desc="Training", bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
+            with tqdm(total=1, desc="Training model", bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
                 train_metrics = self._fit(X_train, y_train, X_val, y_val, verbose=False)
                 pbar.update(1)
         else:
@@ -129,23 +109,19 @@ class BaseModel(ABC):
         self.training_history['train_metrics'] = train_metrics
 
         if X_val is not None and y_val is not None:
-            val_metrics = self.evaluate(X_val, y_val, dataset_name='validation', verbose=verbose)
+            val_metrics = self.evaluate(X_val, y_val, dataset_name='validation', verbose=False)
             self.training_history['val_metrics'] = val_metrics
 
         if verbose:
-            print(f"\nTraining completed in {training_duration:.2f} seconds")
-            print(f"Training accuracy: {train_metrics.get('accuracy', 0):.4f}")
-            if cv_folds > 1:
-                cv_mean = self.training_history['cv_scores']['mean']
-                print(f"CV accuracy: {cv_mean:.4f}")
+            print(f"Train accuracy: {train_metrics.get('accuracy', 0):.4f}")
             if X_val is not None:
                 val_acc = self.training_history['val_metrics'].get('accuracy', 0)
-                print(f"Validation accuracy: {val_acc:.4f}")
+                print(f"Val accuracy:   {val_acc:.4f}")
                 gap = train_metrics.get('accuracy', 0) - val_acc
                 if gap > 0.05:
-                    print(f"Train-val gap: {gap:.4f} (possible overfitting)")
+                    print(f"Overfitting:    Yes (gap: {gap:.4f})")
                 else:
-                    print(f"Train-val gap: {gap:.4f} (good generalization)")
+                    print(f"Overfitting:    No (gap: {gap:.4f})")
 
         return train_metrics
 
@@ -185,47 +161,19 @@ class BaseModel(ABC):
         if not self.is_trained:
             raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
 
-        if verbose:
-            with tqdm(total=2, desc=f"Evaluating on {dataset_name}", bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
-                y_pred = self.predict(X)
-                pbar.update(1)
-
-                metrics = {
-                    'accuracy': accuracy_score(y_true, y_pred),
-                    'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
-                    'precision_weighted': precision_score(y_true, y_pred, average='weighted', zero_division=0),
-                    'recall_macro': recall_score(y_true, y_pred, average='macro', zero_division=0),
-                    'recall_weighted': recall_score(y_true, y_pred, average='weighted', zero_division=0),
-                    'f1_macro': f1_score(y_true, y_pred, average='macro', zero_division=0),
-                    'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
-                }
-                pbar.update(1)
-        else:
-            y_pred = self.predict(X)
-            metrics = {
-                'accuracy': accuracy_score(y_true, y_pred),
-                'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
-                'precision_weighted': precision_score(y_true, y_pred, average='weighted', zero_division=0),
-                'recall_macro': recall_score(y_true, y_pred, average='macro', zero_division=0),
-                'recall_weighted': recall_score(y_true, y_pred, average='weighted', zero_division=0),
-                'f1_macro': f1_score(y_true, y_pred, average='macro', zero_division=0),
-                'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
-            }
+        y_pred = self.predict(X)
+        metrics = {
+            'accuracy': accuracy_score(y_true, y_pred),
+            'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
+            'precision_weighted': precision_score(y_true, y_pred, average='weighted', zero_division=0),
+            'recall_macro': recall_score(y_true, y_pred, average='macro', zero_division=0),
+            'recall_weighted': recall_score(y_true, y_pred, average='weighted', zero_division=0),
+            'f1_macro': f1_score(y_true, y_pred, average='macro', zero_division=0),
+            'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
+        }
 
         if dataset_name == 'test':
             self.training_history['test_metrics'] = metrics
-
-        if verbose:
-            print(f"\n{dataset_name.capitalize()} Set Evaluation:")
-            print(f"{'='*50}")
-            print(f"Accuracy:           {metrics['accuracy']:.4f}")
-            print(f"Precision (macro):  {metrics['precision_macro']:.4f}")
-            print(f"Precision (weighted): {metrics['precision_weighted']:.4f}")
-            print(f"Recall (macro):     {metrics['recall_macro']:.4f}")
-            print(f"Recall (weighted):  {metrics['recall_weighted']:.4f}")
-            print(f"F1-Score (macro):   {metrics['f1_macro']:.4f}")
-            print(f"F1-Score (weighted): {metrics['f1_weighted']:.4f}")
-            print(f"{'='*50}\n")
 
         return metrics
 

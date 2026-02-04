@@ -92,10 +92,8 @@ ELAPSED=$((END_TIME - START_TIME))
 MINUTES=$((ELAPSED / 60))
 SECONDS=$((ELAPSED % 60))
 
-echo -e "${CYAN}${BOX_TL}$(printf "${BOX_H}%.0s" {1..58})${BOX_TR}${NC}"
-printf "${CYAN}${BOX_V}${NC} ${BOLD}${GREEN}Pipeline Complete${NC}%-41s ${CYAN}${BOX_V}${NC}\n" ""
-echo -e "${CYAN}${BOX_V}${NC}                                                          ${CYAN}${BOX_V}${NC}"
-printf "${CYAN}${BOX_V}${NC}   Time elapsed: ${BOLD}%dm %ds${NC}%-35s ${CYAN}${BOX_V}${NC}\n" "$MINUTES" "$SECONDS" ""
-printf "${CYAN}${BOX_V}${NC}   Output: ${BOLD}data/splits/${NC}%-37s ${CYAN}${BOX_V}${NC}\n" ""
-echo -e "${CYAN}${BOX_BL}$(printf "${BOX_H}%.0s" {1..58})${BOX_BR}${NC}"
+echo ""
+echo -e "${GREEN}${BOLD}Pipeline Complete${NC}"
+echo -e "  Time: ${BOLD}${MINUTES}m ${SECONDS}s${NC}"
+echo -e "  Output: ${BOLD}data/splits/${NC}"
 echo ""

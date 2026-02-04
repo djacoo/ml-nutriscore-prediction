@@ -16,14 +16,19 @@ from .model_registry import register_model
 )
 class KNNModel(BaseModel):
 
+    """
+    The hyperparemeters were chosen based on the execution of the tune_model.py script.
+    that performed a grid search over the hyperparameters.
+    """
+
     def __init__(
         self,
-        n_neighbors: int = 15,
-        weights: str = 'distance',
-        algorithm: str = 'auto',
-        metric: str = 'minkowski',
-        p: int = 2,
-        n_jobs: int = -1,
+        n_neighbors: int = 15,           # number of neighbors to consider
+        weights: str = 'distance',       # weight function used in prediction
+        algorithm: str = 'auto',         # algorithm used to compute the nearest neighbors
+        metric: str = 'minkowski',       # metric used to measure the distance between instances
+        p: int = 2,                      # power parameter for the Minkowski metric
+        n_jobs: int = -1,                # number of jobs to run in parallel (-1 means use all available cores)
         **kwargs
     ):
         hyperparameters = {

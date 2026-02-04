@@ -9,8 +9,14 @@ from .base_model import BaseModel
 from .model_registry import register_model
 
 
+
 class LabelEncodedXGBClassifier(XGBClassifier):
-    """XGBClassifier wrapper that handles string labels internally."""
+    """
+    XGBClassifier wrapper that handles string labels internally.
+    
+    Note: this is a workaround to handle the string labels of the target variable,
+    because XGBClassifier does not support string labels.
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -36,20 +42,25 @@ class LabelEncodedXGBClassifier(XGBClassifier):
 )
 class XGBoostModel(BaseModel):
 
+    """
+    The hyperparemeters were chosen based on the execution of the tune_model.py script.
+    that performed a grid search over the hyperparameters.
+    """
+
     def __init__(
         self,
-        n_estimators: int = 100,
-        max_depth: int = 6,
-        learning_rate: float = 0.1,
-        subsample: float = 0.8,
-        colsample_bytree: float = 0.8,
-        reg_alpha: float = 0.1,
-        reg_lambda: float = 1.0,
+        n_estimators: int = 100,           # number of trees in the forest
+        max_depth: int = 6,                # maximum depth of the trees
+        learning_rate: float = 0.1,        # learning rate
+        subsample: float = 0.8,            # subsample ratio of the training instances
+        colsample_bytree: float = 0.8,     # subsample ratio of the features
+        reg_alpha: float = 0.1,            # L1 regularization term on weights
+        reg_lambda: float = 1.0,           # L2 regularization term on weights
         min_child_weight: int = 1,
-        objective: str = 'multi:softprob',
-        eval_metric: str = 'mlogloss',
+        objective: str = 'multi:softprob', # objective function
+        eval_metric: str = 'mlogloss',     # evaluation metric
         random_state: int = 42,
-        n_jobs: int = -1,
+        n_jobs: int = -1,                  # number of jobs to run in parallel (-1 means use all available cores)
         **kwargs
     ):
         hyperparameters = {

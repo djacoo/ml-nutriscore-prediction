@@ -17,7 +17,11 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold
 from tqdm import tqdm
 
-
+"""
+This class is the base class for all the models.
+It is a wrapper interface around the scikit-learn models.
+It provides methods for training (with or without cv), predicting, evaluating, saving and loading the models.
+"""
 class BaseModel(ABC):
 
     def __init__(self, model_name: str, **hyperparameters):
@@ -50,25 +54,25 @@ class BaseModel(ABC):
         verbose: bool = True
     ) -> Dict[str, float]:
         if verbose:
-            print(f"\nTraining {self.model_name}...")
-            print(f"Training samples: {len(X_train)}")
+            print("\nTraining", self.model_name, "...")
+            print("Training samples:", len(X_train))
             if X_val is not None:
-                print(f"Validation samples: {len(X_val)}")
+                print("Validation samples:", len(X_val))
 
         if self.model is None:
             self.model = self._build_model()
 
         start_time = datetime.now()
 
-        # Perform cross-validation before training on full dataset
+        #perform cross-validation before training on full dataset
         if cv_folds > 1 and verbose:
-            print(f"\nPerforming {cv_folds}-fold stratified cross-validation...")
+            print("\nPerforming", cv_folds, "-fold stratified cross-validation...")
 
         if cv_folds > 1:
             skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
             cv_scores = []
 
-            # Manual cross-validation with progress bar
+            
             fold_iterator = tqdm(
                 enumerate(skf.split(X_train, y_train), 1),
                 total=cv_folds,
@@ -78,22 +82,21 @@ class BaseModel(ABC):
             )
 
             for _, (train_idx, val_idx) in fold_iterator:
-                # Create fresh model for this fold
+                #create fresh model for this fold
                 cv_model = self._build_model()
 
-                # Split data for this fold
                 X_fold_train = X_train.iloc[train_idx] if hasattr(X_train, 'iloc') else X_train[train_idx]
                 y_fold_train = y_train[train_idx]
                 X_fold_val = X_train.iloc[val_idx] if hasattr(X_train, 'iloc') else X_train[val_idx]
                 y_fold_val = y_train[val_idx]
 
-                # Train and evaluate
+
                 cv_model.fit(X_fold_train, y_fold_train)
                 fold_score = cv_model.score(X_fold_val, y_fold_val)
                 cv_scores.append(fold_score)
 
-                # Update progress bar with current fold score
-                fold_iterator.set_postfix({'fold_acc': f'{fold_score:.4f}'})
+
+                fold_iterator.set_postfix({'fold_acc': '%.4f' % (fold_score)})
 
             cv_scores = np.array(cv_scores)
             cv_mean = cv_scores.mean()
@@ -107,10 +110,10 @@ class BaseModel(ABC):
             }
 
             if verbose:
-                print(f"Cross-validation accuracy: {cv_mean:.4f} (+/- {cv_std:.4f})")
-                print(f"Individual fold scores: {[f'{score:.4f}' for score in cv_scores]}")
+                print("Cross-validation accuracy:", "%.4f" % cv_mean, "(+/-", "%.4f" % cv_std, ")")
+                print("Individual fold scores:", [ "%.4f" % score for score in cv_scores ])
 
-        # Train on full training set
+
         if verbose:
             print("\nTraining on full dataset...")
             with tqdm(total=1, desc="Training", bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
@@ -133,19 +136,19 @@ class BaseModel(ABC):
             self.training_history['val_metrics'] = val_metrics
 
         if verbose:
-            print(f"\nTraining completed in {training_duration:.2f} seconds")
-            print(f"Training accuracy: {train_metrics.get('accuracy', 0):.4f}")
+            print("\nTraining completed in", "%.2f" % training_duration, "seconds")
+            print("Training accuracy:", "%.4f" % train_metrics.get('accuracy', 0))
             if cv_folds > 1:
                 cv_mean = self.training_history['cv_scores']['mean']
-                print(f"CV accuracy: {cv_mean:.4f}")
+                print("CV accuracy:", "%.4f" % cv_mean)
             if X_val is not None:
                 val_acc = self.training_history['val_metrics'].get('accuracy', 0)
-                print(f"Validation accuracy: {val_acc:.4f}")
+                print("Validation accuracy:", "%.4f" % val_acc)
                 gap = train_metrics.get('accuracy', 0) - val_acc
                 if gap > 0.05:
-                    print(f"Train-val gap: {gap:.4f} (possible overfitting)")
+                    print("Train-val gap:", "%.4f" % gap, "(possible overfitting)")
                 else:
-                    print(f"Train-val gap: {gap:.4f} (good generalization)")
+                    print("Train-val gap:", "%.4f" % gap, "(good generalization)")
 
         return train_metrics
 
@@ -162,16 +165,16 @@ class BaseModel(ABC):
 
     def predict(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         return self.model.predict(X)
 
     def predict_proba(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         if not hasattr(self.model, 'predict_proba'):
-            raise AttributeError(f"{self.model_name} does not support probability predictions.")
+            raise AttributeError(self.model_name + " does not support probability predictions.")
 
         return self.model.predict_proba(X)
 
@@ -183,10 +186,10 @@ class BaseModel(ABC):
         verbose: bool = True
     ) -> Dict[str, float]:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         if verbose:
-            with tqdm(total=2, desc=f"Evaluating on {dataset_name}", bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
+            with tqdm(total=2, desc="Evaluating on " + str(dataset_name), bar_format='{desc}: {bar}| [{elapsed}]', disable=not verbose) as pbar:
                 y_pred = self.predict(X)
                 pbar.update(1)
 
@@ -216,16 +219,17 @@ class BaseModel(ABC):
             self.training_history['test_metrics'] = metrics
 
         if verbose:
-            print(f"\n{dataset_name.capitalize()} Set Evaluation:")
-            print(f"{'='*50}")
-            print(f"Accuracy:           {metrics['accuracy']:.4f}")
-            print(f"Precision (macro):  {metrics['precision_macro']:.4f}")
-            print(f"Precision (weighted): {metrics['precision_weighted']:.4f}")
-            print(f"Recall (macro):     {metrics['recall_macro']:.4f}")
-            print(f"Recall (weighted):  {metrics['recall_weighted']:.4f}")
-            print(f"F1-Score (macro):   {metrics['f1_macro']:.4f}")
-            print(f"F1-Score (weighted): {metrics['f1_weighted']:.4f}")
-            print(f"{'='*50}\n")
+            print("\n" + str(dataset_name).capitalize() + " Set Evaluation:")
+            print("="*50)
+            print("Accuracy:          ", "%.4f" % metrics['accuracy'])
+            print("Precision (macro): ", "%.4f" % metrics['precision_macro'])
+            print("Precision (weighted):", "%.4f" % metrics['precision_weighted'])
+            print("Recall (macro):    ", "%.4f" % metrics['recall_macro'])
+            print("Recall (weighted): ", "%.4f" % metrics['recall_weighted'])
+            print("F1-Score (macro):  ", "%.4f" % metrics['f1_macro'])
+            print("F1-Score (weighted):", "%.4f" % metrics['f1_weighted'])
+            print("="*50)
+            print()
 
         return metrics
 
@@ -236,7 +240,7 @@ class BaseModel(ABC):
         output_dict: bool = False
     ) -> Union[str, Dict]:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         y_pred = self.predict(X)
         return classification_report(y_true, y_pred, output_dict=output_dict, zero_division=0)
@@ -247,14 +251,14 @@ class BaseModel(ABC):
         y_true: Union[np.ndarray, pd.Series]
     ) -> np.ndarray:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         y_pred = self.predict(X)
         return confusion_matrix(y_true, y_pred)
 
     def save(self, filepath: Union[str, Path], save_metadata: bool = True) -> None:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Cannot save untrained model.")
+            raise ValueError(self.model_name + " has not been trained yet. Cannot save untrained model.")
 
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -269,10 +273,10 @@ class BaseModel(ABC):
         }
 
         joblib.dump(model_data, filepath)
-        print(f"Model saved to {filepath}")
+        print("Model saved to", filepath)
 
         if save_metadata:
-            metadata_path = filepath.parent / f"{filepath.stem}_metadata.json"
+            metadata_path = filepath.parent / (filepath.stem + "_metadata.json")
             metadata = {
                 'model_name': self.model_name,
                 'hyperparameters': self.hyperparameters,
@@ -282,13 +286,13 @@ class BaseModel(ABC):
 
             with open(metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
-            print(f"Metadata saved to {metadata_path}")
+            print("Metadata saved to", metadata_path)
 
     def load(self, filepath: Union[str, Path]) -> None:
         filepath = Path(filepath)
 
         if not filepath.exists():
-            raise FileNotFoundError(f"Model file not found: {filepath}")
+            raise FileNotFoundError("Model file not found:", filepath)
 
         model_data = joblib.load(filepath)
 
@@ -299,7 +303,7 @@ class BaseModel(ABC):
         self.is_trained = model_data['is_trained']
         self.training_history = model_data['training_history']
 
-        print(f"Model loaded from {filepath}")
+        print("Model loaded from", filepath)
 
     def get_params(self) -> Dict[str, Any]:
         return self.hyperparameters.copy()
@@ -316,7 +320,7 @@ class BaseModel(ABC):
 
     def __repr__(self) -> str:
         trained_status = "trained" if self.is_trained else "not trained"
-        return f"{self.model_name}({trained_status}, params={self.hyperparameters})"
+        return self.model_name + "(" + trained_status + ", params=" + str(self.hyperparameters) + ")"
 
     def __str__(self) -> str:
         return self.__repr__()

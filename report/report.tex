@@ -410,7 +410,7 @@ Looking at confusion matrices, all models showed similar error patterns. They of
 \textbf{Feature engineering is important.} Our project showed that engineered features added a lot of importance. Nutritional ratios provide context -- 10g sugar means different things if total carbs are 80g rather than 15g.
 
 \textbf{Missing fruit/vegetable data limits performance.} This feature is important, especially for distinguishing A from B. We had to drop it (95\%+ missing), which probably caused errors in healty products grades.
-
+ 
 
 
 
@@ -419,8 +419,15 @@ Looking at confusion matrices, all models showed similar error patterns. They of
 
 \section{Conclusions}
 
-% To be filled with summary of results, strengths, limitations, and future work
+This project predicts Nutri-Score grades for products in Open Food Facts. We tested five models and found that SVM performed best (81.6\% F1-Macro), but XGBoost offered the most practical solution with 78.9\% F1-Macro in just 37 seconds.
 
+The results confirmed that non-linear models are best for this project. Logistic Regression only reached 68.1\% F1-Macro because Nutri-Score uses thresholds and interactions, not linear relationships. Feature engineering was important -- ratio featuresgave models information they couldn't get from raw nutrient values as they were originally.
+
+The main limitation is missing fruits/vegetables/nuts data (95\%+ missing). This feature is important for separating grade A from B, and without it, models had problems with these classes. Class B was the hardest to predict -- it's the smallest class (11.6\%). Our 250k sample was also a limitation; smaller than the full 1M+ products available from the dataset, but hardware gave us a limit.
+
+For future work, advanced methods could handle missing nutrients better than just dropping them. Testing on the full dataset would show if performance is the same even if the scale is larger. Category-specific models (beverages vs. dairy) might perform better than one general model.
+
+\section{References}
 \begin{thebibliography}{9}
 \bibitem{ncdalliance}
 NCD Alliance. \textit{Unhealthy Diets}. \url{https://ncdalliance.org/explore-ncds/risk-factors/unhealthy-diets}

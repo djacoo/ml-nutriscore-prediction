@@ -18,14 +18,14 @@ class RandomForestModel(BaseModel):
 
     def __init__(
         self,
-        n_estimators: int = 300,
-        max_depth: Optional[int] = 15,
-        min_samples_split: int = 2,
-        min_samples_leaf: int = 2,
-        max_features: str = 'sqrt',
-        class_weight: str = 'balanced',
-        n_jobs: int = -1,
-        random_state: int = 42,
+        n_estimators: int = 300,           # number of trees in the forest
+        max_depth: Optional[int] = 30,     # maximum depth of the trees
+        min_samples_split: int = 2,        # minimum number of samples required to split an internal node
+        min_samples_leaf: int = 2,         # minimum number of samples required to be at a leaf node
+        max_features: str = 'sqrt',        # number of features to consider for splitting
+        class_weight: str = 'balanced',    # class weight
+        n_jobs: int = -1,                  # number of jobs to run in parallel
+        random_state: int = 42,            # random state
         **kwargs
     ):
         hyperparameters = {

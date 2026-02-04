@@ -16,17 +16,22 @@ from .model_registry import register_model
 )
 class SVMModel(BaseModel):
 
+    """
+    The hyperparemeters were chosen based on the execution of the tune_model.py script.
+    that performed a grid search over the hyperparameters.
+    """
+
     def __init__(
         self,
-        C: float = 10.0,
-        kernel: str = 'rbf',
-        gamma: str = 'scale',
-        degree: int = 3,
-        class_weight: str = 'balanced',
-        probability: bool = True,
-        cache_size: int = 2000,
-        max_iter: int = -1,
-        random_state: int = 42,
+        C: float = 10.0,                 # regularization parameter
+        kernel: str = 'rbf',             # kernel type
+        gamma: str = 'scale',            # kernel coefficient for 'rbf', 'poly' and 'sigmoid'
+        degree: int = 3,                 # degree for 'poly'
+        class_weight: str = 'balanced',  # class weight
+        probability: bool = True,        # whether to enable probability estimates
+        cache_size: int = 2000,          # cache size for the solver
+        max_iter: int = -1,              # maximum number of iterations (-1 means no limit)
+        random_state: int = 42,          # random state
         **kwargs
     ):
         hyperparameters = {

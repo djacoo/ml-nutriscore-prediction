@@ -4,6 +4,7 @@ from .logistic_regression import LogisticRegressionModel
 from .knn import KNNModel
 from .svm import SVMModel
 from .random_forest import RandomForestModel
+from .xgboost import XGBoostModel
 
 __all__ = [
     'BaseModel',
@@ -13,4 +14,5 @@ __all__ = [
     'KNNModel',
     'SVMModel',
     'RandomForestModel',
+    'XGBoostModel',
 ]

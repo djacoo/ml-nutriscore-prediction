@@ -14,7 +14,7 @@ This script preprocesses the dataset for Nutri-Score prediction.
 It loads the dataset, applies the preprocessing pipeline and saves the preprocessed dataset.
 It also creates the train/validation/test splits and saves the splits.
 
-Note: We added some arguments to the script to allow for customization of the preprocessing pipeline.
+Note: We added some arguments to the script to allow for customization of the preprocessing pipeline
 and to solve accuracy issues we encountered in first experiments.
 """
 

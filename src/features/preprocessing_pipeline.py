@@ -10,6 +10,14 @@ from features.scaling import FeatureScaler
 from features.dimensionality_reduction import FeatureReducer
 
 
+"""
+This class creates the preprocessing pipeline.
+It contains the different steps of the preprocessing pipeline and the different parameters.
+
+Note: every step is optional and can be disabled by setting the corresponding flag to False.
+We decided this in order to better solve and understand some issues we encountered.
+"""
+
 def create_preprocessing_pipeline(
     missing_threshold: float = 0.95,
     top_n_countries: int = 15,

@@ -42,11 +42,11 @@ def print_step(step, desc):
 
 
 def print_success(msg):
-    print(f"      {GREEN}{msg}{NC}")
+    print(f"      {GREEN}✓{NC} {msg}")
 
 
 def print_error(msg):
-    print(f"      {YELLOW}{msg}{NC}")
+    print(f"      {YELLOW}✗{NC} {msg}")
 
 
 def print_info(msg):
@@ -120,13 +120,17 @@ def main():
 
     start_time = datetime.now()
 
-    print_header(f"Training: {args.model.upper()}")
+    print_header(f"Model Training: {args.model.upper()}")
 
     data_dir = Path(args.data_dir)
     if not data_dir.exists():
-        print_error(f"Data directory '{data_dir}' not found. Run preprocessing first.")
+        print_error(f"Data directory '{data_dir}' does not exist.")
+        print_info("Please run preprocessing first: python scripts/run_preprocessing.py")
         sys.exit(1)
 
+    print_step("1/4", "Loading preprocessed data")
+    print_info("Loading train/val splits for supervised learning workflow")
+    print()
     try:
         X_train = pd.read_csv(data_dir / 'X_train.csv')
         y_train = pd.read_csv(data_dir / 'y_train.csv').values.ravel()
@@ -135,15 +139,21 @@ def main():
 
         non_numeric_cols = X_train.select_dtypes(include=['object']).columns.tolist()
         if non_numeric_cols:
+            print_info(f"Dropping non-numeric columns: {non_numeric_cols}")
             X_train = X_train.select_dtypes(include=['number'])
             X_val = X_val.select_dtypes(include=['number'])
 
-        print_info(f"Dataset: {X_train.shape[0]:,} train samples, {X_val.shape[0]:,} val samples, {X_train.shape[1]} features")
+        print_success(f"Training set: {X_train.shape[0]:,} samples, {X_train.shape[1]} features")
+        print_success(f"Validation set: {X_val.shape[0]:,} samples")
     except FileNotFoundError as e:
-        print_error(f"Data files not found. Run preprocessing first.")
+        print_error(f"Could not find data files: {e}")
+        print_info("Please run preprocessing first: python scripts/run_preprocessing.py")
         sys.exit(1)
+    print()
 
+    print_step("2/4", "Initializing model")
     try:
+        
         model_kwargs = {}
         if args.C is not None:
             model_kwargs['C'] = args.C
@@ -155,25 +165,52 @@ def main():
             model_kwargs['class_weight'] = None if args.class_weight.lower() == 'none' else args.class_weight
 
         model = ModelRegistry.create_model(args.model, **model_kwargs)
+        print_success(f"Model: {model.model_name}")
+        print_success(f"Hyperparameters: {model.get_params()}")
     except KeyError as e:
-        print_error(f"{e}. Use --list-models to see available models")
+        print_error(f"{e}")
+        print_info("Use --list-models to see available models")
         sys.exit(1)
+    print()
 
+    print_step("3/4", "Training model")
+    print_info("Fitting model to learn patterns for Nutri-Score prediction (grades a-e)")
+    print()
     model.train(X_train, y_train, X_val, y_val, verbose=True)
+    print()
 
     description_suffix = f"_{args.description}" if args.description else ""
     filename = f"{args.model}_{args.version}{description_suffix}.joblib"
     output_dir = Path(args.output_dir) / args.model
     output_path = output_dir / filename
 
+    print_step("4/4", "Saving model")
     model.save(output_path, save_metadata=True)
+    print()
 
     end_time = datetime.now()
     elapsed = (end_time - start_time).total_seconds()
+    minutes = int(elapsed // 60)
+    seconds = int(elapsed % 60)
 
+    val_metrics = model.get_training_history().get('val_metrics', {})
+    val_acc = val_metrics.get('accuracy', 0)
+    val_f1 = val_metrics.get('f1_weighted', 0)
+
+    print(f"{CYAN}{BOX_TL}{BOX_H * 68}{BOX_TR}{NC}")
+    print(f"{CYAN}{BOX_V}{NC} {BOLD}{GREEN}Training Complete{NC}{' ' * 51} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}{' ' * 68} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}   Model: {BOLD}{args.model}{NC}{' ' * (60 - len(args.model))} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}   Saved to: {BOLD}{output_path}{NC}{' ' * (54 - len(str(output_path)))} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}{' ' * 68} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}   Val Accuracy: {BOLD}{val_acc:.4f}{NC}{' ' * 45} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}   Val F1 (weighted): {BOLD}{val_f1:.4f}{NC}{' ' * 38} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}{' ' * 68} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_V}{NC}   Time elapsed: {BOLD}{minutes}m {seconds}s{NC}{' ' * (48 - len(f'{minutes}m {seconds}s'))} {CYAN}{BOX_V}{NC}")
+    print(f"{CYAN}{BOX_BL}{BOX_H * 68}{BOX_BR}{NC}")
     print()
-    print_success(f"Model saved: {output_path}")
-    print_success(f"Training completed in {elapsed:.1f}s")
+    print_info("Next: Evaluate on test set with:")
+    print_info(f"  python scripts/evaluate_model.py --model-path {output_path} --model-type {args.model}")
 
 
 if __name__ == '__main__':

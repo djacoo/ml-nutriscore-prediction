@@ -9,6 +9,10 @@ from sklearn.decomposition import PCA
 
 METADATA_COLS = ['nutriscore_grade', 'split_group', 'product_name', 'brands', 'code']
 
+"""
+This class reduces the dimensionality of the dataset using PCA.
+It inherit from BaseEstimator and TransformerMixin to be used in a scikit-learn pipeline.
+"""
 
 class FeatureReducer(BaseEstimator, TransformerMixin):
     """Reduces dimensions using PCA with variance threshold."""
@@ -23,6 +27,12 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
         self.n_components_selected_: Optional[int] = None
         self.explained_variance_ratio_: Optional[np.ndarray] = None
 
+    """
+    This method fits the PCA model to the dataset.
+    It first checks if there are any numerical columns in the dataset.
+    Then, it selects the feature columns for PCA.
+    It fits the PCA model to the dataset and returns the fitted model.
+    """
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> 'FeatureReducer':
         
         numerical_cols = X.select_dtypes(include=[np.number]).columns.tolist()
@@ -53,10 +63,17 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
         self.explained_variance_ratio_ = self.pca_.explained_variance_ratio_
 
         cumulative_variance = np.cumsum(self.explained_variance_ratio_)[-1]
-        print(f"PCA: {len(self.feature_columns_)} features → {n_comp} components ({cumulative_variance*100:.1f}% variance)")
+        print("\nPCA fitted:", n_comp, "components selected")
+        print("Explained variance:", cumulative_variance, "(", cumulative_variance*100, "%)")
+        print("Feature reduction:", len(self.feature_columns_), "->", n_comp, "components")
 
         return self
 
+    """
+    This method transforms the dataset using the fitted PCA model.
+    First checks if the required feature columns are present in the dataset.
+    Then, it transforms the dataset using the fitted PCA model.
+    """
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         
         if self.pca_ is None:
@@ -64,11 +81,13 @@ class FeatureReducer(BaseEstimator, TransformerMixin):
 
         missing_cols = [col for col in self.feature_columns_ if col not in X.columns]
         if missing_cols:
-            raise ValueError(
-                f"Missing feature columns required for PCA transformation: {missing_cols}. "
-                f"Expected columns: {self.feature_columns_[:10]}..."
-                if len(self.feature_columns_) > 10 else f"Expected columns: {self.feature_columns_}"
-            )
+            if len(self.feature_columns_) > 10:
+                expected_cols = self.feature_columns_[:10]
+                print("Expected columns (first 10):", expected_cols, "...")
+            else:
+                print("Expected columns:", self.feature_columns_)
+            raise ValueError("Missing feature columns required for PCA transformation:", missing_cols)
+
 
         X_array = X[self.feature_columns_].values
         X_transformed = self.pca_.transform(X_array)

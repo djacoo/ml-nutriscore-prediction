@@ -7,7 +7,7 @@ where = ["src"]
 
 [project]
 name = "nutriscore-ml"
-version = "0.1.0"
+version = "1.0.0"
 description = "Multi-class classification of food product Nutri-Scores using classical ML"
 readme = "README.md"
 requires-python = ">=3.8"

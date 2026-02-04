@@ -73,9 +73,7 @@
 
 \subsection{Contextual Framework}
 
-To mitigate the rise of NCDs (Non-Communicable Diseases) linked with today's diet standards, having access to nutritional information is essential.
-Front-of-Pack labelling tries to help by simplifying the hard task of interpreting nutritional tables. The Nutri-Score serves as a tool for a better, healthier choice by offering an immediate visual cue. The accurate prediction of such grades is important to help people navigate a complex food landscape that today is dominated by ultra-processed foods.
-This increased availability has dramatically changed the way the world eats and drinks, with severe negative effects on our health \cite{ncdalliance}.
+Non-Communicable Diseases (NCDs) linked to modern diets are important nowadays. People need access to nutritional information, but interpreting nutritional tables is not so easy. Front-of-Pack labels like Nutri-Score help by giving an immediate visual for healthier choices. Predicting these grades accurately matters because today's food landscape is dominated by ultra-processed foods. The increased availability of these foods has changed how the world eats and drinks, with lots of negative effects on health \cite{ncdalliance}.
 
 \subsection{Problem Statement}
 
@@ -97,12 +95,13 @@ The classification can maybe help the usage of the Open Food Facts dataset for t
 
 \section{State of the Art (SOTA)}
 
-The scientific literature regarding the analysis of crowdsourced nutritional databases identifies two big issues: data sparsity and the non-linear nature of quality indices (i.e., Nutri-Score).
-While traditional approaches have frequently relied on linear models, these methods fail to preserve macronutrient correlations or capture the discrete thresholds inherent to the calculation algorithm. Simpler Logistic Regression exhibits limitations due to its inability to model the step-wise decision rules typical of the Nutri-Score system.
-To address these limitations, the current state of the art consists in multivariate imputation via KNN to preserve the local data structure, combined with non-linear Ensemble models, which are recognized for their robustness in handling outliers and modeling complex relationships within imbalanced datasets \cite{ensemble}.
+Research on crowded nutritional databases like this shows two main problems: data sparsity and the non-linear nature of quality indices like Nutri-Score.
 
-In this project, we will explore the Random Forest and the XGBoost models as the state-of-the-art ensemble models.
-A better solution as provided by this study could be implementing ``missing data imputation techniques based on methods for substituting missing values with statistical prediction: Non-Negative Matrix Factorization (NMF), Multiple Imputations by Chained Equations (MICE), Nonparametric Missing Value Imputation using Random Forest (MissForest), and K-Nearest Neighbors (KNN), and compared them with commonly used approaches - fill-in with mean, fill-in with median'' \cite{imputation}.
+Traditional approaches used linear models, but these don't work well. They can't preserve macronutrient correlations or capture the thresholds in the Nutri-Score calculation. Logistic Regression has limitations because it can't model the decision rules that Nutri-Score uses.
+
+Current state-of-the-art methods use multivariate imputation via KNN to keep the local data structure, combined with non-linear ensemble models. Ensemble models handle outliers well and can model complex relationships in imbalanced datasets \cite{arora2025applicationmachinelearningpredict}.
+
+In this project, we explore Random Forest and XGBoost as state-of-the-art ensemble models. Research suggests that better solutions exist for missing data imputation: Non-Negative Matrix Factorization (NMF), Multiple Imputations by Chained Equations (MICE), Nonparametric Missing Value Imputation using Random Forest (MissForest), and K-Nearest Neighbors (KNN). These methods perform better than simple approaches like using mean or median \cite{imputation}.
 
 \section{Objectives}
 
@@ -496,7 +495,7 @@ XGBoost (eXtreme Gradient Boosting) is an open-source, distributed machine learn
   
   \textbf{Feature engineering is important.} Our project showed that engineered features added a lot of importance. Nutritional ratios provide context -- 10g sugar means different things if total carbs are 80g rather than 15g.
   
-  \textbf{Missing fruit/vegetable data limits performance.} This feature is important, especially for distinguishing A from B. We had to drop it (95\%+ missing), which probably caused errors in healty products grades.
+  \textbf{Missing fruit/vegetable data limits performance.} This feature is important, especially for distinguishing A from B. We had to drop it (95\%+ missing), which probably caused errors in healthy products grades.
   
 
 

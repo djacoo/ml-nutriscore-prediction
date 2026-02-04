@@ -207,7 +207,9 @@ COUNTRY_OVERRIDES = {
     'hongrie': 'Hungary',
 }
 
-
+"""
+Function to normalize a country name to its canonical form.
+"""
 def normalize_country(country_name: str) -> str:
     if not country_name:
         return country_name

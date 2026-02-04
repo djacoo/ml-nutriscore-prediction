@@ -24,7 +24,15 @@ LOG1P_BEFORE_STANDARD = [
     'saturated_to_total_fat_ratio',
 ]
 
+"""
+This class scales the numerical features of the dataset.
+It inherit from BaseEstimator and TransformerMixin to be used in a scikit-learn pipeline.
+We implemented different scalers: StandardScaler, MinMaxScaler and RobustScaler.
 
+Note: We set as default the StandardScaler, since it is the one that gives the best results.
+Some highly skewed features are transformed with the log1p function before scaling to better 
+usage with distance based models like KNN.
+"""
 class FeatureScaler(BaseEstimator, TransformerMixin):
     def __init__(self, method: str = 'standard', skew_threshold: float = 1.0):
         self.method = method
@@ -35,7 +43,10 @@ class FeatureScaler(BaseEstimator, TransformerMixin):
         self.scalers_ = {}
 
         numerical_cols = X.select_dtypes(include=[np.number]).columns
-        features_to_scale = [col for col in numerical_cols if col not in METADATA_COLS]
+        features_to_scale = []
+        for col in numerical_cols:
+            if col not in METADATA_COLS:
+                features_to_scale.append(col)
 
         if len(features_to_scale) == 0:
             raise ValueError(

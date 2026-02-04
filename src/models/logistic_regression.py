@@ -7,7 +7,11 @@ from sklearn.metrics import accuracy_score
 from .base_model import BaseModel
 from .model_registry import register_model
 
-
+"""
+This class implements the Logistic Regression classifier.
+It inherits from the BaseModel class and implements the _build_model and _fit methods
+that are called by the train method of the BaseModel class.
+"""
 @register_model(
     name='logistic_regression',
     description='Logistic Regression baseline model',

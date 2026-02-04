@@ -17,7 +17,11 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold
 from tqdm import tqdm
 
-
+"""
+This class is the base class for all the models.
+It is a wrapper interface around the scikit-learn models.
+It provides methods for training (with or without cv), predicting, evaluating, saving and loading the models.
+"""
 class BaseModel(ABC):
 
     def __init__(self, model_name: str, **hyperparameters):
@@ -54,6 +58,7 @@ class BaseModel(ABC):
 
         start_time = datetime.now()
 
+        # Perform cross-validation before training on full dataset
         if cv_folds > 1:
             skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
             cv_scores = []
@@ -67,6 +72,7 @@ class BaseModel(ABC):
             )
 
             for _, (train_idx, val_idx) in fold_iterator:
+                # Create fresh model for this fold
                 cv_model = self._build_model()
 
                 X_fold_train = X_train.iloc[train_idx] if hasattr(X_train, 'iloc') else X_train[train_idx]
@@ -138,16 +144,16 @@ class BaseModel(ABC):
 
     def predict(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         return self.model.predict(X)
 
     def predict_proba(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         if not hasattr(self.model, 'predict_proba'):
-            raise AttributeError(f"{self.model_name} does not support probability predictions.")
+            raise AttributeError(self.model_name + " does not support probability predictions.")
 
         return self.model.predict_proba(X)
 
@@ -159,7 +165,7 @@ class BaseModel(ABC):
         verbose: bool = True
     ) -> Dict[str, float]:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         y_pred = self.predict(X)
         metrics = {
@@ -184,7 +190,7 @@ class BaseModel(ABC):
         output_dict: bool = False
     ) -> Union[str, Dict]:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         y_pred = self.predict(X)
         return classification_report(y_true, y_pred, output_dict=output_dict, zero_division=0)
@@ -195,14 +201,14 @@ class BaseModel(ABC):
         y_true: Union[np.ndarray, pd.Series]
     ) -> np.ndarray:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Call train() first.")
+            raise ValueError(self.model_name + " has not been trained yet. Call train() first.")
 
         y_pred = self.predict(X)
         return confusion_matrix(y_true, y_pred)
 
     def save(self, filepath: Union[str, Path], save_metadata: bool = True) -> None:
         if not self.is_trained:
-            raise ValueError(f"{self.model_name} has not been trained yet. Cannot save untrained model.")
+            raise ValueError(self.model_name + " has not been trained yet. Cannot save untrained model.")
 
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -217,10 +223,10 @@ class BaseModel(ABC):
         }
 
         joblib.dump(model_data, filepath)
-        print(f"Model saved to {filepath}")
+        print("Model saved to", filepath)
 
         if save_metadata:
-            metadata_path = filepath.parent / f"{filepath.stem}_metadata.json"
+            metadata_path = filepath.parent / (filepath.stem + "_metadata.json")
             metadata = {
                 'model_name': self.model_name,
                 'hyperparameters': self.hyperparameters,
@@ -230,13 +236,13 @@ class BaseModel(ABC):
 
             with open(metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
-            print(f"Metadata saved to {metadata_path}")
+            print("Metadata saved to", metadata_path)
 
     def load(self, filepath: Union[str, Path]) -> None:
         filepath = Path(filepath)
 
         if not filepath.exists():
-            raise FileNotFoundError(f"Model file not found: {filepath}")
+            raise FileNotFoundError("Model file not found:", filepath)
 
         model_data = joblib.load(filepath)
 
@@ -247,7 +253,7 @@ class BaseModel(ABC):
         self.is_trained = model_data['is_trained']
         self.training_history = model_data['training_history']
 
-        print(f"Model loaded from {filepath}")
+        print("Model loaded from", filepath)
 
     def get_params(self) -> Dict[str, Any]:
         return self.hyperparameters.copy()
@@ -264,7 +270,7 @@ class BaseModel(ABC):
 
     def __repr__(self) -> str:
         trained_status = "trained" if self.is_trained else "not trained"
-        return f"{self.model_name}({trained_status}, params={self.hyperparameters})"
+        return self.model_name + "(" + trained_status + ", params=" + str(self.hyperparameters) + ")"
 
     def __str__(self) -> str:
         return self.__repr__()

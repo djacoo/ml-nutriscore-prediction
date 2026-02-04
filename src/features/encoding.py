@@ -12,7 +12,9 @@ from data.countries_mappings import normalize_country
 
 CATEGORICAL_FEATURES = ["countries", "pnns_groups_1", "pnns_groups_2"]
 
-
+"""
+Helper function to parse the countries column.
+"""
 def parse_countries(country_string: str) -> List[str]:
     countries = []
     for c in str(country_string).split(','):
@@ -21,6 +23,17 @@ def parse_countries(country_string: str) -> List[str]:
             countries.append(normalize_country(c))
     return countries
 
+
+"""
+This class encodes the categorical features of the dataset.
+It inherit from BaseEstimator and TransformerMixin to be used in a scikit-learn pipeline.
+It contains 3 different encoders for the 3 different categorical features.
+
+Note: we choose the following encoding methods based on the characteristics of the features:
+- Countries: Multi-Label Binarization of top N countries
+- pnns_groups_1: One-Hot Encoding (low cardinality)
+- pnns_groups_2: Target Encoding (medium cardinality)
+"""
 
 class FeatureEncoder(BaseEstimator, TransformerMixin):
     def __init__(self, top_n_countries: int = 15, target_col: str = 'nutriscore_grade'):
@@ -55,6 +68,7 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
 
         country_counts = Counter()
         for country_list in country_lists:
+            # Set to avoid counting duplicates within same product
             country_counts.update(set(country_list))
 
         self.top_countries_ = [
@@ -112,11 +126,11 @@ class FeatureEncoder(BaseEstimator, TransformerMixin):
     ) -> pd.DataFrame:
         country_lists = X[feature].apply(parse_countries).tolist()
 
-        # Filter to top countries
-        filtered_data = [
-            list(set(c for c in country_list if c in self.top_countries_))
-            for country_list in country_lists
-        ]
+
+        filtered_data = []
+        for country_list in country_lists:
+            filtered = list(set(c for c in country_list if c in self.top_countries_))
+            filtered_data.append(filtered)
 
         transformed = encoder.transform(filtered_data)
         feature_names = [f"{feature}_{country}" for country in encoder.classes_]

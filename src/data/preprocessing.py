@@ -12,7 +12,18 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from data.countries_mappings import COUNTRY_OVERRIDES
 
+"""
+This class handles the missing values in the dataset.
+It is used to analyze the missing values and to impute them.
+The imputation strategy is to drop features with more than 95% missing values and to 
+impute the remaining missing values with the median value.
 
+Note: we choose the following methods to handle the missing values:
+- Dropping features with more than 95% missing values
+- Imputing the missing values with the median value
+- Labeling the missing values as 'unknown'
+- Removing the samples without Nutri-Score labels
+"""
 class MissingValueHandler:
     def __init__(self, threshold_drop_feature: float = 0.95):
         self.threshold_drop_feature = threshold_drop_feature
@@ -103,27 +114,30 @@ class MissingValueHandler:
         cols_dropped = initial_cols - final_cols
         rows_dropped = initial_rows - final_rows
 
-        print(f"                     Operation: Missing value imputation and feature filtering")
+        print("Operation: Missing value imputation and feature filtering")
         if cols_dropped > 0:
-            dropped_names = ", ".join([f"'{col}'" for col in high_missing_cols[:2]])
+            dropped_names = ", ".join(["'" + col + "'" for col in high_missing_cols[:2]])
             if len(high_missing_cols) > 2:
-                dropped_names += f" (+{len(high_missing_cols)-2} more)"
-            print(f"                              - Dropped: {dropped_names}")
+                dropped_names += " (+" + str(len(high_missing_cols) - 2) + " more)"
+            print(" - Dropped:", dropped_names)
         if rows_dropped > 0:
-            print(f"                              - Removed {rows_dropped:,} rows with missing '{target_col}'")
+            print(" - Removed", rows_dropped, "rows with missing", "'" + target_col + "'")
         if len(imputed_numerical) > 0:
             num_examples = []
             for col, method, value, count in imputed_numerical[:2]:
-                val_str = f"{value:.1f}" if method == 'median' else str(value)
-                num_examples.append(f"'{col}'={val_str}")
+                if method == 'median':
+                    val_str = "%.1f" % value
+                else:
+                    val_str = str(value)
+                num_examples.append("'" + col + "'=" + val_str)
             if len(imputed_numerical) > 2:
-                num_examples.append(f"(+{len(imputed_numerical)-2} more)")
-            print(f"                              - Imputed numerical: {', '.join(num_examples)}")
+                num_examples.append("(+" + str(len(imputed_numerical) - 2) + " more)")
+            print(" - Imputed numerical:", ", ".join(num_examples))
         if len(imputed_categorical) > 0:
-            cat_names = ", ".join([f"'{col}'" for col, _ in imputed_categorical[:2]])
+            cat_names = ", ".join(["'" + col + "'" for col, _ in imputed_categorical[:2]])
             if len(imputed_categorical) > 2:
-                cat_names += f" (+{len(imputed_categorical)-2} more)"
-            print(f"                              - Imputed categorical: {cat_names} -> 'unknown'")
+                cat_names += " (+" + str(len(imputed_categorical) - 2) + " more)"
+            print(" - Imputed categorical:", cat_names, "-> 'unknown'")
 
         return df_processed
 
@@ -142,7 +156,7 @@ class MissingValueHandler:
         with open(output_path, 'w') as f:
             json.dump(report, f, indent=2)
 
-        print(f"Saved imputation report: {output_path}")
+        print("Saved imputation report:", output_path)
 
 
 def normalize_single_country(raw_name: str) -> str:
@@ -194,15 +208,17 @@ def clean_countries_column(entry) -> str:
 def preprocess_dataset(input_path: Path,
                       output_path: Path,
                       report_path: Path = None) -> Tuple[pd.DataFrame, MissingValueHandler]:
-    print(f"\nLoading data: {input_path}")
+    print()
+    print("Loading data:", input_path)
     df = pd.read_csv(input_path)
-    print(f"Loaded: {len(df):,} rows × {len(df.columns)} columns")
+    print("Loaded:", len(df), "rows x", len(df.columns), "columns")
 
     handler = MissingValueHandler(threshold_drop_feature=0.95)
     df_processed = handler.handle_missing_values(df)
 
     if 'countries' in df_processed.columns:
-        print("\nCleaning countries column...")
+        print()
+        print("Cleaning countries column...")
         df_processed['countries'] = df_processed['countries'].apply(clean_countries_column)
         print("Countries column cleaned")
 
@@ -217,11 +233,12 @@ def preprocess_dataset(input_path: Path,
 
     if columns_to_remove:
         df_processed = df_processed.drop(columns=columns_to_remove)
-        print(f"Removed {len(columns_to_remove)} unnecessary column(s)")
+        print("Removed", len(columns_to_remove), "unnecessary column(s)")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df_processed.to_csv(output_path, index=False)
-    print(f"\nSaved processed data: {output_path}")
+    print()
+    print("Saved processed data:", output_path)
 
     if report_path:
         handler.save_imputation_report(report_path)
@@ -236,4 +253,5 @@ if __name__ == "__main__":
     report_file = project_root / "data" / "processed" / "imputation_report.json"
 
     df_processed, handler = preprocess_dataset(input_file, output_file, report_file)
-    print(f"\nPreprocessing complete: {df_processed.shape}")
+    print()
+    print("Preprocessing complete:", df_processed.shape)

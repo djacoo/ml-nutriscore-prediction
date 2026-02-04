@@ -3,6 +3,10 @@ from pathlib import Path
 import json
 
 
+"""
+This class is a registry for the models.
+It allows to register new models and to get the models by name, category, etc.
+"""
 class ModelRegistry:
 
     _models: Dict[str, Type] = {}

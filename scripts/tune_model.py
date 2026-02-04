@@ -12,6 +12,15 @@ sys.path.append(str(Path(__file__).parent.parent))
 from src.models import ModelRegistry
 
 
+"""
+This script tunes the hyperparameters of a machine learning model for Nutri-Score prediction.
+It loads the preprocessed data, initializes the model, tunes the hyperparameters and saves the model.
+It also displays the best hyperparameters and the best F1-Macro score.
+
+Note: The different choices for hyperparameters were made based on the best practices for the different models
+and the best results we achieved in the first experiments.
+"""
+
 PARAM_GRIDS = {
     'logistic_regression': {
         'C': [0.01, 0.1, 1.0, 10.0],
@@ -56,7 +65,6 @@ def main():
         print("Model not supported. Available:", list(PARAM_GRIDS.keys()))
         sys.exit(1)
 
-    # Load data
     data_dir = Path(args.data_dir)
     X_train = pd.read_csv(data_dir / 'X_train.csv').select_dtypes(include=['number'])
     y_train = pd.read_csv(data_dir / 'y_train.csv').values.ravel()
@@ -64,7 +72,6 @@ def main():
     print("Model:", args.model)
     print("Samples:", X_train.shape[0], "Features:", X_train.shape[1])
 
-    # Create estimator and run grid search
     estimator = ModelRegistry.create_model(args.model)._build_model()
     param_grid = PARAM_GRIDS[args.model]
 
@@ -78,11 +85,9 @@ def main():
     )
     grid_search.fit(X_train, y_train)
 
-    # Results
     print("\nBest F1-Macro:", round(grid_search.best_score_, 4))
     print("Best params:", grid_search.best_params_)
 
-    # Save
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
